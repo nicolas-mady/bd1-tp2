@@ -1,0 +1,7 @@
+*
+!sample.csv
+!*.hh
+!*.cc
+!/*
+!tests/a
+!bin/a
