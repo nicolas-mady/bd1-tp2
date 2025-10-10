@@ -32,18 +32,25 @@ $(BIN_DIR):
 .PHONY: build
 build: $(BIN_DIR) $(addprefix $(BIN_DIR)/, $(PROGRAMS))
 
-# Build individual programs (assuming C++ source files)
-$(BIN_DIR)/upload: $(SRC_DIR)/upload.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $<
+# Common object files
+COMMON_OBJS = $(SRC_DIR)/artigo.o $(SRC_DIR)/hash_table.o
 
-$(BIN_DIR)/findrec: $(SRC_DIR)/findrec.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $<
+# Build object files
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c -o $@ $<
 
-$(BIN_DIR)/seek1: $(SRC_DIR)/seek1.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $<
+# Build individual programs (linking with common objects)
+$(BIN_DIR)/upload: $(SRC_DIR)/upload.cpp $(COMMON_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $^
 
-$(BIN_DIR)/seek2: $(SRC_DIR)/seek2.cpp | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $<
+$(BIN_DIR)/findrec: $(SRC_DIR)/findrec.cpp $(COMMON_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $^
+
+$(BIN_DIR)/seek1: $(SRC_DIR)/seek1.cpp $(COMMON_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $^
+
+$(BIN_DIR)/seek2: $(SRC_DIR)/seek2.cpp $(COMMON_OBJS) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -o $@ $^
 
 # Alternative rules for C source files (uncomment if needed)
 # $(BIN_DIR)/upload: $(SRC_DIR)/upload.c | $(BIN_DIR)
@@ -109,6 +116,7 @@ docker-compose-down:
 .PHONY: clean
 clean:
 	rm -rf $(BIN_DIR)/*
+	rm -f $(SRC_DIR)/*.o
 
 .PHONY: clean-docker
 clean-docker:

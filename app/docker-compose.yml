@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Serviço base para build da imagem
+  tp2-base:
+    build: .
+    image: tp2-bd1:latest
+    volumes:
+      - ./data:/data
+    environment:
+      - CSV_PATH=/data/input.csv
+      - DATA_DIR=/data/db
+      - LOG_LEVEL=info
+
+  # Serviço para upload de dados
+  upload:
+    extends: tp2-base
+    command: [ "./bin/upload", "/data/input.csv" ]
+    profiles: [ "upload" ]
+
+  # Serviço para busca direta (findrec)
+  findrec:
+    extends: tp2-base
+    command: [ "./bin/findrec", "1" ]
+    profiles: [ "findrec" ]
+    depends_on:
+      - upload
+
+  # Serviço para busca por índice primário (seek1)
+  seek1:
+    extends: tp2-base
+    command: [ "./bin/seek1", "1" ]
+    profiles: [ "seek1" ]
+    depends_on:
+      - upload
+
+  # Serviço para busca por índice secundário (seek2)
+  seek2:
+    extends: tp2-base
+    command: [ "./bin/seek2", "Design and implementation" ]
+    profiles: [ "seek2" ]
+    depends_on:
+      - upload
+
+  # Serviço para teste interativo
+  interactive:
+    extends: tp2-base
+    command: [ "bash" ]
+    stdin_open: true
+    tty: true
+    profiles: [ "interactive" ]
+
+# Volumes nomeados para persistência
+volumes:
+  data:
+    driver: local
+
+# Redes (opcional)
+networks:
+  default:
+    name: tp2-network

@@ -1,15 +1,22 @@
 # exemplo base: pode usar debian:bookworm-slim ou ubuntu:24.04
-FROM debian:bookworm-slim
+FROM ubuntu:22.04
+
+# Evita prompts interativos durante instalação
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      g++ make cmake && \
+    g++ make cmake && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . /app
+
+# Copia apenas os arquivos necessários primeiro (melhor cache)
+COPY include/ include/
+COPY src/ src/
+COPY Makefile .
 
 # compile usando Makefile padrão (ajuste conforme seu build)
-RUN make build
+RUN make clean && make build
 
 # diretório para dados persistentes (montado como volume)
 VOLUME ["/data"]
