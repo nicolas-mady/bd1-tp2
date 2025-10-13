@@ -1,7 +1,0 @@
-*
-!sample.csv
-!*.h
-!*.cpp
-!/*
-!tests/a
-!bin/a
