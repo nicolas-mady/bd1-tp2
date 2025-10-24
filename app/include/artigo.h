@@ -47,12 +47,12 @@ struct Artigo {
 };
 
 // Estrutura para estatísticas de busca
-struct BuscaEstatisticas {
+struct SearchStats {
   int blocos_lidos;
   int total_blocos;
   bool encontrado;
 
-  BuscaEstatisticas() : blocos_lidos(0), total_blocos(0), encontrado(false) {}
+  SearchStats() : blocos_lidos(0), total_blocos(0), encontrado(false) {}
 };
 
 // Funções utilitárias

@@ -7,25 +7,25 @@
 #include <vector>
 
 // Ordem da B+Tree (número máximo de chaves por nó)
-#define BTREE_ORDER 100
+#define BTREE_ORDER 340
 
 // Estrutura para entrada do índice primário (ID -> posição no arquivo hash)
-struct IndicePrimarioEntry {
+struct PrimIdxEntry {
   int id;
   long posicao_hash;
 
-  IndicePrimarioEntry() : id(0), posicao_hash(0) {}
-  IndicePrimarioEntry(int id, long pos) : id(id), posicao_hash(pos) {}
+  PrimIdxEntry() : id(0), posicao_hash(0) {}
+  PrimIdxEntry(int id, long pos) : id(id), posicao_hash(pos) {}
 };
 
 // Estrutura para entrada do índice secundário (Título -> ID)
-struct IndiceSecundarioEntry {
+struct SecIdxEntry {
   char titulo[MAX_TITULO + 1];
   int id;
 
-  IndiceSecundarioEntry() : id(0) { memset(titulo, 0, sizeof(titulo)); }
+  SecIdxEntry() : id(0) { memset(titulo, 0, sizeof(titulo)); }
 
-  IndiceSecundarioEntry(const std::string &t, int i) : id(i) {
+  SecIdxEntry(const std::string &t, int i) : id(i) {
     strncpy(titulo, t.c_str(), MAX_TITULO);
     titulo[MAX_TITULO] = '\0';
   }
@@ -64,7 +64,7 @@ public:
   bool insert(const T &entry);
 
   // Busca uma entrada
-  BuscaEstatisticas search(const T &key, T &result);
+  SearchStats search(const T &key, T &result);
 
   // Obtém total de blocos
   int getTotalBlocks();
@@ -80,8 +80,8 @@ private:
   long splitNode(long node_pos, T &promoted_key);
 
   // Métodos para busca
-  BuscaEstatisticas searchInNode(long node_pos, const T &key, T &result,
-                                 int &blocos_lidos);
+  SearchStats searchInNode(long node_pos, const T &key, T &result,
+                           int &blocos_lidos);
 
   // Funções de comparação específicas para cada tipo
   int compare(const T &a, const T &b);
@@ -89,7 +89,7 @@ private:
 };
 
 // Especializações das B+Trees
-using IndicePrimario = BPlusTree<IndicePrimarioEntry>;
-using IndiceSecundario = BPlusTree<IndiceSecundarioEntry>;
+using PrimIdx = BPlusTree<PrimIdxEntry>;
+using SecIdx = BPlusTree<SecIdxEntry>;
 
 #endif // BTREE_H

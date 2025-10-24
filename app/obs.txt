@@ -1,0 +1,4 @@
+src/upload.cpp : 125 : os 4 registros quebrados em 2 linhas
+src/upload.cpp : 145 : if insert
+src/artigo.cpp : 32 : parse date -> redefinir o campo atualizacao?
+include/simple_btree.h : 121 -> botar antes da 112

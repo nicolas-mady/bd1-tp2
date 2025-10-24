@@ -10,22 +10,22 @@
 #include <vector>
 
 // Estrutura para entrada do índice primário (ID -> posição no arquivo hash)
-struct IndicePrimarioEntry {
+struct PrimIdxEntry {
   int id;
   long posicao_hash;
 
-  IndicePrimarioEntry() : id(0), posicao_hash(0) {}
-  IndicePrimarioEntry(int id, long pos) : id(id), posicao_hash(pos) {}
+  PrimIdxEntry() : id(0), posicao_hash(0) {}
+  PrimIdxEntry(int id, long pos) : id(id), posicao_hash(pos) {}
 };
 
 // Estrutura para entrada do índice secundário (Título -> ID)
-struct IndiceSecundarioEntry {
+struct SecIdxEntry {
   char titulo[MAX_TITULO + 1];
   int id;
 
-  IndiceSecundarioEntry() : id(0) { memset(titulo, 0, sizeof(titulo)); }
+  SecIdxEntry() : id(0) { memset(titulo, 0, sizeof(titulo)); }
 
-  IndiceSecundarioEntry(const std::string &t, int i) : id(i) {
+  SecIdxEntry(const std::string &t, int i) : id(i) {
     strncpy(titulo, t.c_str(), MAX_TITULO);
     titulo[MAX_TITULO] = '\0';
   }
@@ -65,8 +65,8 @@ public:
     return saveToDisk();
   }
 
-  BuscaEstatisticas search(const T &key, T &result) {
-    BuscaEstatisticas stats;
+  SearchStats search(const T &key, T &result) {
+    SearchStats stats;
     stats.total_blocos = getTotalBlocks();
     stats.blocos_lidos = 1; // Simplificado - assume 1 bloco lido
 
@@ -147,38 +147,34 @@ private:
   bool matches(const T &entry, const T &key);
 };
 
-// Especializações das funções de comparação para IndicePrimarioEntry
+// Especializações das funções de comparação para PrimIdxEntry
 template <>
-inline int
-SimpleBTree<IndicePrimarioEntry>::compare(const IndicePrimarioEntry &a,
-                                          const IndicePrimarioEntry &b) {
+inline int SimpleBTree<PrimIdxEntry>::compare(const PrimIdxEntry &a,
+                                              const PrimIdxEntry &b) {
   return a.id - b.id;
 }
 
 template <>
-inline bool
-SimpleBTree<IndicePrimarioEntry>::matches(const IndicePrimarioEntry &entry,
-                                          const IndicePrimarioEntry &key) {
+inline bool SimpleBTree<PrimIdxEntry>::matches(const PrimIdxEntry &entry,
+                                               const PrimIdxEntry &key) {
   return entry.id == key.id;
 }
 
-// Especializações das funções de comparação para IndiceSecundarioEntry
+// Especializações das funções de comparação para SecIdxEntry
 template <>
-inline int
-SimpleBTree<IndiceSecundarioEntry>::compare(const IndiceSecundarioEntry &a,
-                                            const IndiceSecundarioEntry &b) {
+inline int SimpleBTree<SecIdxEntry>::compare(const SecIdxEntry &a,
+                                             const SecIdxEntry &b) {
   return strcmp(a.titulo, b.titulo);
 }
 
 template <>
-inline bool
-SimpleBTree<IndiceSecundarioEntry>::matches(const IndiceSecundarioEntry &entry,
-                                            const IndiceSecundarioEntry &key) {
+inline bool SimpleBTree<SecIdxEntry>::matches(const SecIdxEntry &entry,
+                                              const SecIdxEntry &key) {
   return strcmp(entry.titulo, key.titulo) == 0;
 }
 
 // Aliases para usar no lugar das antigas definições
-using SimpleIndicePrimario = SimpleBTree<IndicePrimarioEntry>;
-using SimpleIndiceSecundario = SimpleBTree<IndiceSecundarioEntry>;
+using SimplePrimIdx = SimpleBTree<PrimIdxEntry>;
+using SimpleIndiceSecundario = SimpleBTree<SecIdxEntry>;
 
 #endif // SIMPLE_BTREE_H

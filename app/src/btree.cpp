@@ -44,8 +44,8 @@ template <typename T> bool BPlusTree<T>::insert(const T &entry) {
 }
 
 template <typename T>
-BuscaEstatisticas BPlusTree<T>::search(const T &key, T &result) {
-  BuscaEstatisticas stats;
+SearchStats BPlusTree<T>::search(const T &key, T &result) {
+  SearchStats stats;
   stats.total_blocos = getTotalBlocks();
 
   if (root_position == -1) {
@@ -123,9 +123,9 @@ bool BPlusTree<T>::insertIntoNode(long node_pos, const T &entry,
 }
 
 template <typename T>
-BuscaEstatisticas BPlusTree<T>::searchInNode(long node_pos, const T &key,
-                                             T &result, int &blocos_lidos) {
-  BuscaEstatisticas stats;
+SearchStats BPlusTree<T>::searchInNode(long node_pos, const T &key, T &result,
+                                       int &blocos_lidos) {
+  SearchStats stats;
   blocos_lidos++;
 
   BTreeNode<T> node;
@@ -156,29 +156,29 @@ BuscaEstatisticas BPlusTree<T>::searchInNode(long node_pos, const T &key,
 // Especializações das funções de comparação
 
 template <>
-int BPlusTree<IndicePrimarioEntry>::compare(const IndicePrimarioEntry &a,
-                                            const IndicePrimarioEntry &b) {
+int BPlusTree<PrimIdxEntry>::compare(const PrimIdxEntry &a,
+                                     const PrimIdxEntry &b) {
   return a.id - b.id;
 }
 
 template <>
-bool BPlusTree<IndicePrimarioEntry>::matches(const IndicePrimarioEntry &entry,
-                                             const IndicePrimarioEntry &key) {
+bool BPlusTree<PrimIdxEntry>::matches(const PrimIdxEntry &entry,
+                                      const PrimIdxEntry &key) {
   return entry.id == key.id;
 }
 
 template <>
-int BPlusTree<IndiceSecundarioEntry>::compare(const IndiceSecundarioEntry &a,
-                                              const IndiceSecundarioEntry &b) {
+int BPlusTree<SecIdxEntry>::compare(const SecIdxEntry &a,
+                                    const SecIdxEntry &b) {
   return strcmp(a.titulo, b.titulo);
 }
 
 template <>
-bool BPlusTree<IndiceSecundarioEntry>::matches(
-    const IndiceSecundarioEntry &entry, const IndiceSecundarioEntry &key) {
+bool BPlusTree<SecIdxEntry>::matches(const SecIdxEntry &entry,
+                                     const SecIdxEntry &key) {
   return strcmp(entry.titulo, key.titulo) == 0;
 }
 
 // Instanciações explícitas
-template class BPlusTree<IndicePrimarioEntry>;
-template class BPlusTree<IndiceSecundarioEntry>;
+template class BPlusTree<PrimIdxEntry>;
+template class BPlusTree<SecIdxEntry>;

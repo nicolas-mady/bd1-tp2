@@ -23,7 +23,7 @@ public:
   bool insert(const Artigo &artigo);
 
   // Busca um registro por ID
-  BuscaEstatisticas search(int id, Artigo &artigo);
+  SearchStats search(int id, Artigo &artigo);
 
   // Obtém estatísticas do arquivo
   int getTotalBlocks();

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 
   // Verifica se variáveis de ambiente estão definidas
   std::string data_dir =
-      std::getenv("DATA_DIR") ? std::getenv("DATA_DIR") : "/data/db";
+      std::getenv("DATA_DIR") ? std::getenv("DATA_DIR") : "data/db";
   std::string hash_file = data_dir + "/dados.hash";
 
   std::cout << "=== FINDREC - Busca Direta no Arquivo Hash ===" << std::endl;
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   Artigo artigo;
-  BuscaEstatisticas stats = hash_table.search(id, artigo);
+  SearchStats stats = hash_table.search(id, artigo);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(

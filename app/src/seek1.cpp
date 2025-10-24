@@ -32,16 +32,15 @@ int main(int argc, char *argv[]) {
   std::cout << "Arquivo de dados: " << hash_file << std::endl;
 
   // Inicializa índice primário
-  SimpleIndicePrimario indice_primario(primary_index_file);
+  SimplePrimIdx indice_primario(primary_index_file);
 
   // Mede tempo de busca no índice
   auto start_time = std::chrono::high_resolution_clock::now();
 
   // Busca no índice primário
-  IndicePrimarioEntry key_entry(id, 0);
-  IndicePrimarioEntry result_entry;
-  BuscaEstatisticas index_stats =
-      indice_primario.search(key_entry, result_entry);
+  PrimIdxEntry key_entry(id, 0);
+  PrimIdxEntry result_entry;
+  SearchStats index_stats = indice_primario.search(key_entry, result_entry);
 
   std::cout << std::endl << "=== BUSCA NO ÍNDICE PRIMÁRIO ===" << std::endl;
   std::cout << "Blocos lidos no índice: " << index_stats.blocos_lidos
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
   HashTable hash_table(hash_file, table_size);
 
   Artigo artigo;
-  BuscaEstatisticas data_stats = hash_table.search(id, artigo);
+  SearchStats data_stats = hash_table.search(id, artigo);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(

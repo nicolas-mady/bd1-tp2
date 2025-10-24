@@ -36,10 +36,9 @@ int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   // Busca no índice secundário
-  IndiceSecundarioEntry key_entry(titulo, 0);
-  IndiceSecundarioEntry result_entry;
-  BuscaEstatisticas index_stats =
-      indice_secundario.search(key_entry, result_entry);
+  SecIdxEntry key_entry(titulo, 0);
+  SecIdxEntry result_entry;
+  SearchStats index_stats = indice_secundario.search(key_entry, result_entry);
 
   std::cout << std::endl << "=== BUSCA NO ÍNDICE SECUNDÁRIO ===" << std::endl;
   std::cout << "Blocos lidos no índice: " << index_stats.blocos_lidos
@@ -66,7 +65,7 @@ int main(int argc, char *argv[]) {
   HashTable hash_table(hash_file, table_size);
 
   Artigo artigo;
-  BuscaEstatisticas data_stats = hash_table.search(result_entry.id, artigo);
+  SearchStats data_stats = hash_table.search(result_entry.id, artigo);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(

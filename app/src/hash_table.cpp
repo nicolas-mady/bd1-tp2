@@ -100,8 +100,8 @@ bool HashTable::insert(const Artigo &artigo) {
   return writeBlock(block_num, buffer);
 }
 
-BuscaEstatisticas HashTable::search(int id, Artigo &artigo) {
-  BuscaEstatisticas stats;
+SearchStats HashTable::search(int id, Artigo &artigo) {
+  SearchStats stats;
   stats.total_blocos = getTotalBlocks();
 
   int hash_value = Artigo::hash_id(id, table_size);
@@ -139,6 +139,7 @@ BuscaEstatisticas HashTable::search(int id, Artigo &artigo) {
         unlink("/tmp/temp_deserialize");
 
         stats.encontrado = true;
+
         return stats;
       }
     }
