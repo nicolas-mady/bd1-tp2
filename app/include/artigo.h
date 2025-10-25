@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
 
 // Tamanhos máximos dos campos
 #define MAX_TITULO 300
@@ -15,7 +16,8 @@
 #define BLOCK_SIZE 4096
 
 // Estrutura do registro de artigo
-struct Artigo {
+struct Artigo
+{
   int id;
   char titulo[MAX_TITULO + 1];
   int ano;
@@ -47,12 +49,38 @@ struct Artigo {
 };
 
 // Estrutura para estatísticas de busca
-struct SearchStats {
+struct BuscaEstatisticas
+{
   int blocos_lidos;
   int total_blocos;
   bool encontrado;
 
-  SearchStats() : blocos_lidos(0), total_blocos(0), encontrado(false) {}
+  BuscaEstatisticas() : blocos_lidos(0), total_blocos(0), encontrado(false) {}
+};
+
+// Estrutura para entrada do índice primário (ID -> posição no arquivo hash)
+struct PrimIdxEntry
+{
+  int id;
+  long posicao_hash;
+
+  PrimIdxEntry() : id(0), posicao_hash(0) {}
+  PrimIdxEntry(int id, long pos) : id(id), posicao_hash(pos) {}
+};
+
+// Estrutura para entrada do índice secundário (Título -> ID)
+struct SecIdxEntry
+{
+  char titulo[MAX_TITULO + 1];
+  int id;
+
+  SecIdxEntry() : id(0) { std::memset(titulo, 0, sizeof(titulo)); }
+
+  SecIdxEntry(const std::string &t, int i) : id(i)
+  {
+    std::strncpy(titulo, t.c_str(), MAX_TITULO);
+    titulo[MAX_TITULO] = '\0';
+  }
 };
 
 // Funções utilitárias

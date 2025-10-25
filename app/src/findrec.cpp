@@ -5,16 +5,21 @@
 #include <iomanip>
 #include <iostream>
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
+int main(int argc, char *argv[])
+{
+  if (argc != 2)
+  {
     std::cerr << "Uso: " << argv[0] << " <ID>" << std::endl;
     return 1;
   }
 
   int id;
-  try {
+  try
+  {
     id = std::stoi(argv[1]);
-  } catch (const std::exception &e) {
+  }
+  catch (const std::exception &e)
+  {
     std::cerr << "ID inválido: " << argv[1] << std::endl;
     return 1;
   }
@@ -38,29 +43,35 @@ int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   Artigo artigo;
-  SearchStats stats = hash_table.search(id, artigo);
+  BuscaEstatisticas stats = hash_table.search(id, artigo);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       end_time - start_time);
 
-  std::cout << std::endl << "=== RESULTADOS DA BUSCA ===" << std::endl;
+  std::cout << std::endl
+            << "=== RESULTADOS DA BUSCA ===" << std::endl;
 
-  if (stats.encontrado) {
+  if (stats.encontrado)
+  {
     std::cout << "REGISTRO ENCONTRADO:" << std::endl;
     std::cout << "-------------------" << std::endl;
     artigo.print();
-  } else {
+  }
+  else
+  {
     std::cout << "REGISTRO NÃO ENCONTRADO" << std::endl;
   }
 
-  std::cout << std::endl << "=== ESTATÍSTICAS DE ACESSO ===" << std::endl;
+  std::cout << std::endl
+            << "=== ESTATÍSTICAS DE ACESSO ===" << std::endl;
   std::cout << "Blocos lidos: " << stats.blocos_lidos << std::endl;
   std::cout << "Total de blocos no arquivo: " << stats.total_blocos
             << std::endl;
   std::cout << "Tempo de busca: " << duration.count() << " µs" << std::endl;
 
-  if (stats.total_blocos > 0) {
+  if (stats.total_blocos > 0)
+  {
     double percent = (double)stats.blocos_lidos / stats.total_blocos * 100.0;
     std::cout << "Porcentagem do arquivo acessada: " << std::fixed
               << std::setprecision(2) << percent << "%" << std::endl;

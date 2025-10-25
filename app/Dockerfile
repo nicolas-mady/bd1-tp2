@@ -14,6 +14,10 @@ WORKDIR /app
 COPY include/ include/
 COPY src/ src/
 COPY Makefile .
+COPY data/ data/
+
+# Processa o arquivo CSV para remover quebras de linha indevidas
+RUN sed -i ':a;N;$!ba;s/\n[a-z]//g' data/artigo.csv
 
 # compile usando Makefile padrão (ajuste conforme seu build)
 RUN make clean && make build

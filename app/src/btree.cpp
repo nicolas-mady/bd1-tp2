@@ -1,184 +1,230 @@
 #include "btree.h"
+#include "artigo.h"
 #include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <sys/stat.h>
+#include <fstream>
 
 template <typename T>
 BPlusTree<T>::BPlusTree(const std::string &filename)
-    : filename(filename), root_position(-1) {
+    : filename(filename), root_position(-1), next_free_position(0),
+      cache_hits(0), cache_misses(0)
+{
   node_size = sizeof(BTreeNode<T>);
 }
 
-template <typename T> BPlusTree<T>::~BPlusTree() {
-  // Destrutor
+template <typename T>
+BPlusTree<T>::~BPlusTree()
+{
+  // Simple destructor - no complex caching to clean
 }
 
-template <typename T> bool BPlusTree<T>::initialize() {
+template <typename T>
+bool BPlusTree<T>::initialize()
+{
   std::ofstream file(filename, std::ios::binary);
-  if (!file) {
-    std::cerr << "Erro ao criar arquivo B+Tree: " << filename << std::endl;
+  if (!file)
+  {
+    std::cerr << "Error creating B+Tree file: " << filename << std::endl;
     return false;
   }
 
-  // Cria nó raiz inicial
+  // Create initial root node
   BTreeNode<T> root;
   root.is_leaf = true;
   root.num_keys = 0;
 
   root_position = 0;
+  next_free_position = node_size;
+
   file.write(reinterpret_cast<const char *>(&root), node_size);
   file.close();
 
-  std::cout << "B+Tree inicializada: " << filename << std::endl;
+  // Clear cache and statistics
+  node_cache.clear();
+  cache_lru.clear();
+  cache_hits = 0;
+  cache_misses = 0;
+
+  std::cout << "B+Tree initialized: " << filename << std::endl;
   return true;
 }
 
-template <typename T> bool BPlusTree<T>::insert(const T &entry) {
-  if (root_position == -1) {
+template <typename T>
+bool BPlusTree<T>::insert(const T &entry)
+{
+  if (root_position == -1)
+  {
     if (!initialize())
       return false;
   }
 
+  // Simplified insert - just add to leaf nodes for this workload
   return insertIntoNode(root_position, entry);
 }
 
 template <typename T>
-SearchStats BPlusTree<T>::search(const T &key, T &result) {
-  SearchStats stats;
+BuscaEstatisticas BPlusTree<T>::search(const T &key, T &result)
+{
+  BuscaEstatisticas stats;
   stats.total_blocos = getTotalBlocks();
 
-  if (root_position == -1) {
+  if (root_position == -1)
+  {
     return stats;
   }
 
-  return searchInNode(root_position, key, result, stats.blocos_lidos);
-}
+  long current_pos = root_position;
 
-template <typename T> int BPlusTree<T>::getTotalBlocks() {
-  struct stat st;
-  if (stat(filename.c_str(), &st) != 0) {
-    return 0;
+  while (current_pos != -1)
+  {
+    BTreeNode<T> node;
+    if (!readNode(current_pos, node))
+    {
+      break;
+    }
+
+    stats.blocos_lidos++;
+
+    // Simple linear search in node
+    for (int i = 0; i < node.num_keys; i++)
+    {
+      if (compare(node.keys[i], key) == 0 && matches(node.keys[i], key))
+      {
+        result = node.keys[i];
+        stats.encontrado = true;
+        return stats;
+      }
+    }
+
+    // If leaf node, we're done
+    if (node.is_leaf)
+    {
+      break;
+    }
+
+    // Otherwise, follow first child for simplicity
+    current_pos = node.children[0];
   }
-  return (st.st_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  return stats;
 }
 
 template <typename T>
-bool BPlusTree<T>::readNode(long position, BTreeNode<T> &node) {
+int BPlusTree<T>::getTotalBlocks()
+{
+  std::ifstream file(filename, std::ios::binary | std::ios::ate);
+  if (!file)
+    return 0;
+
+  long file_size = file.tellg();
+  file.close();
+  return file_size / node_size;
+}
+
+template <typename T>
+void BPlusTree<T>::getCacheStats(size_t &hits, size_t &misses) const
+{
+  hits = cache_hits;
+  misses = cache_misses;
+}
+
+template <typename T>
+bool BPlusTree<T>::flushCache()
+{
+  // Simplified - no complex cache to flush
+  return true;
+}
+
+template <typename T>
+void BPlusTree<T>::printPerformanceStats() const
+{
+  std::cout << "Cache hits: " << cache_hits << ", misses: " << cache_misses << std::endl;
+}
+
+// Simple helper methods
+template <typename T>
+bool BPlusTree<T>::readNode(long position, BTreeNode<T> &node) const
+{
   std::ifstream file(filename, std::ios::binary);
   if (!file)
     return false;
 
   file.seekg(position);
   file.read(reinterpret_cast<char *>(&node), node_size);
-  file.close();
-
-  return file.gcount() == node_size;
+  return file.good();
 }
 
 template <typename T>
-bool BPlusTree<T>::writeNode(long position, const BTreeNode<T> &node) {
+bool BPlusTree<T>::writeNode(long position, const BTreeNode<T> &node)
+{
   std::fstream file(filename, std::ios::binary | std::ios::in | std::ios::out);
   if (!file)
     return false;
 
   file.seekp(position);
   file.write(reinterpret_cast<const char *>(&node), node_size);
-  file.close();
-
-  return true;
-}
-
-template <typename T> long BPlusTree<T>::allocateNode() {
-  struct stat st;
-  if (stat(filename.c_str(), &st) != 0) {
-    return 0;
-  }
-  return st.st_size;
+  return file.good();
 }
 
 template <typename T>
-bool BPlusTree<T>::insertIntoNode(long node_pos, const T &entry,
-                                  long child_pos) {
+long BPlusTree<T>::allocateNode()
+{
+  long pos = next_free_position;
+  next_free_position += node_size;
+  return pos;
+}
+
+template <typename T>
+bool BPlusTree<T>::insertIntoNode(long node_pos, const T &entry, long child_pos)
+{
   BTreeNode<T> node;
-  if (!readNode(node_pos, node)) {
+  if (!readNode(node_pos, node))
+  {
     return false;
   }
 
-  // Implementação simplificada - apenas adiciona ao final se há espaço
-  if (node.num_keys < BTREE_ORDER - 1) {
+  // Simple insertion - just add if there's space
+  if (node.num_keys < BTREE_ORDER)
+  {
     node.keys[node.num_keys] = entry;
-    if (!node.is_leaf && child_pos != -1) {
-      node.children[node.num_keys + 1] = child_pos;
-    }
     node.num_keys++;
-
     return writeNode(node_pos, node);
   }
 
-  // Se não há espaço, seria necessário implementar split
-  // Por simplicidade, apenas reporta erro
-  std::cerr << "Nó cheio - split não implementado" << std::endl;
+  // For simplicity, don't handle splits in this minimal version
   return false;
 }
 
-template <typename T>
-SearchStats BPlusTree<T>::searchInNode(long node_pos, const T &key, T &result,
-                                       int &blocos_lidos) {
-  SearchStats stats;
-  blocos_lidos++;
-
-  BTreeNode<T> node;
-  if (!readNode(node_pos, node)) {
-    return stats;
-  }
-
-  // Busca linear no nó (implementação simplificada)
-  for (int i = 0; i < node.num_keys; i++) {
-    if (matches(node.keys[i], key)) {
-      result = node.keys[i];
-      stats.encontrado = true;
-      return stats;
-    }
-  }
-
-  // Se não é folha, continua busca nos filhos
-  if (!node.is_leaf) {
-    // Implementação simplificada - busca no primeiro filho
-    if (node.children[0] != -1) {
-      return searchInNode(node.children[0], key, result, blocos_lidos);
-    }
-  }
-
-  return stats;
-}
-
-// Especializações das funções de comparação
-
+// Comparison functions for different types
 template <>
-int BPlusTree<PrimIdxEntry>::compare(const PrimIdxEntry &a,
-                                     const PrimIdxEntry &b) {
+int BPlusTree<PrimIdxEntry>::compare(const PrimIdxEntry &a, const PrimIdxEntry &b)
+{
   return a.id - b.id;
 }
 
 template <>
-bool BPlusTree<PrimIdxEntry>::matches(const PrimIdxEntry &entry,
-                                      const PrimIdxEntry &key) {
+bool BPlusTree<PrimIdxEntry>::matches(const PrimIdxEntry &entry, const PrimIdxEntry &key)
+{
   return entry.id == key.id;
 }
 
 template <>
-int BPlusTree<SecIdxEntry>::compare(const SecIdxEntry &a,
-                                    const SecIdxEntry &b) {
+int BPlusTree<SecIdxEntry>::compare(const SecIdxEntry &a, const SecIdxEntry &b)
+{
   return strcmp(a.titulo, b.titulo);
 }
 
 template <>
-bool BPlusTree<SecIdxEntry>::matches(const SecIdxEntry &entry,
-                                     const SecIdxEntry &key) {
+bool BPlusTree<SecIdxEntry>::matches(const SecIdxEntry &entry, const SecIdxEntry &key)
+{
   return strcmp(entry.titulo, key.titulo) == 0;
 }
 
-// Instanciações explícitas
+// Explicit instantiation for the types we use
 template class BPlusTree<PrimIdxEntry>;
 template class BPlusTree<SecIdxEntry>;
+
+// Type aliases as defined in artigo.h
+typedef BPlusTree<PrimIdxEntry> PrimIdx;
+typedef BPlusTree<SecIdxEntry> SecIdx;

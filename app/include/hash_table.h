@@ -5,7 +5,8 @@
 #include <fstream>
 #include <vector>
 
-class HashTable {
+class HashTable
+{
 private:
   std::string filename;
   int table_size;
@@ -23,7 +24,7 @@ public:
   bool insert(const Artigo &artigo);
 
   // Busca um registro por ID
-  SearchStats search(int id, Artigo &artigo);
+  BuscaEstatisticas search(int id, Artigo &artigo);
 
   // Obtém estatísticas do arquivo
   int getTotalBlocks();
