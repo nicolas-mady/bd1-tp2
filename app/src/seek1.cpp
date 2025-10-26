@@ -5,21 +5,16 @@
 #include <iomanip>
 #include <iostream>
 
-int main(int argc, char *argv[])
-{
-  if (argc != 2)
-  {
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
     std::cerr << "Uso: " << argv[0] << " <ID>" << std::endl;
     return 1;
   }
 
   int id;
-  try
-  {
+  try {
     id = std::stoi(argv[1]);
-  }
-  catch (const std::exception &e)
-  {
+  } catch (const std::exception& e) {
     std::cerr << "ID inválido: " << argv[1] << std::endl;
     return 1;
   }
@@ -47,15 +42,12 @@ int main(int argc, char *argv[])
   std::cout << std::endl
             << "=== SEARCH RESULTS ===" << std::endl;
 
-  if (index_stats.encontrado)
-  {
+  if (index_stats.encontrado) {
     std::cout << "RECORD FOUND IN PRIMARY INDEX:" << std::endl;
     std::cout << "--------------------------------" << std::endl;
     std::cout << "ID: " << result_entry.id << std::endl;
     std::cout << "Hash Position: " << result_entry.posicao_hash << std::endl;
-  }
-  else
-  {
+  } else {
     std::cout << "RECORD NOT FOUND IN PRIMARY INDEX" << std::endl;
   }
 
@@ -65,11 +57,9 @@ int main(int argc, char *argv[])
   std::cout << "Total index blocks: " << index_stats.total_blocos << std::endl;
   std::cout << "Search time: " << duration.count() << " µs" << std::endl;
 
-  if (index_stats.total_blocos > 0)
-  {
-    double access_percent = (double)index_stats.blocos_lidos / index_stats.total_blocos * 100.0;
-    std::cout << "Index accessed: " << std::fixed << std::setprecision(2)
-              << access_percent << "%" << std::endl;
+  if (index_stats.total_blocos > 0) {
+    double access_percent = (double) index_stats.blocos_lidos / index_stats.total_blocos * 100.0;
+    std::cout << "Index accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
   }
 
   return index_stats.encontrado ? 0 : 1;

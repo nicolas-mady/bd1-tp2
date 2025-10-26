@@ -5,10 +5,8 @@
 #include <iomanip>
 #include <iostream>
 
-int main(int argc, char *argv[])
-{
-  if (argc != 2)
-  {
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
     std::cerr << "Uso: " << argv[0] << " \"<Título>\"" << std::endl;
     std::cerr << "Exemplo: " << argv[0] << " \"Design and implementation\"" << std::endl;
     return 1;
@@ -38,15 +36,12 @@ int main(int argc, char *argv[])
   std::cout << std::endl
             << "=== SEARCH RESULTS ===" << std::endl;
 
-  if (index_stats.encontrado)
-  {
+  if (index_stats.encontrado) {
     std::cout << "RECORD FOUND IN SECONDARY INDEX:" << std::endl;
     std::cout << "----------------------------------" << std::endl;
     std::cout << "Title: \"" << result_entry.titulo << "\"" << std::endl;
     std::cout << "Article ID: " << result_entry.id << std::endl;
-  }
-  else
-  {
+  } else {
     std::cout << "RECORD NOT FOUND IN SECONDARY INDEX" << std::endl;
   }
 
@@ -56,11 +51,9 @@ int main(int argc, char *argv[])
   std::cout << "Total index blocks: " << index_stats.total_blocos << std::endl;
   std::cout << "Search time: " << duration.count() << " µs" << std::endl;
 
-  if (index_stats.total_blocos > 0)
-  {
-    double access_percent = (double)index_stats.blocos_lidos / index_stats.total_blocos * 100.0;
-    std::cout << "Index accessed: " << std::fixed << std::setprecision(2)
-              << access_percent << "%" << std::endl;
+  if (index_stats.total_blocos > 0) {
+    double access_percent = (double) index_stats.blocos_lidos / index_stats.total_blocos * 100.0;
+    std::cout << "Index accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
   }
 
   std::cout << std::endl
