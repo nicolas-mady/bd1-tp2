@@ -65,13 +65,13 @@ struct Record {
   // }
 
   void print() {
-    std::cout << "         ID - " << id << std::endl;
-    std::cout << "     Título - " << title << std::endl;
-    std::cout << "        Ano - " << year << std::endl;
-    std::cout << "    Autores - " << authors << std::endl;
-    std::cout << "   Citações - " << cites << std::endl;
-    std::cout << "Atualização - " << formatDateTime(dateTime) << std::endl;
-    std::cout << "    Snippet - " << snippet << std::endl;
+    std::cout << "         ID: " << id << std::endl;
+    std::cout << "     Título: " << title << std::endl;
+    std::cout << "        Ano: " << year << std::endl;
+    std::cout << "    Autores: " << authors << std::endl;
+    std::cout << "   Citações: " << cites << std::endl;
+    std::cout << "Atualização: " << formatDateTime(dateTime) << std::endl;
+    std::cout << "    Snippet: " << snippet << std::endl;
   }
 };
 

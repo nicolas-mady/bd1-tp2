@@ -30,12 +30,8 @@ int main(int argc, char* argv[]) {
   in.seekg(offset, std::ios::beg);
 
   Record rec;
-  int tries = 0;
-
-  do {
+  for (int tries = 0; rec.id != id && tries < 2; tries++)
     in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
-    tries++;
-  } while (rec.id != id && tries < 2);
 
   in.close();
   
