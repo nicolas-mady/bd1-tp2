@@ -36,9 +36,9 @@ int main(int argc, char* argv[]) {
   in.close();
   
   auto t1 = std::chrono::high_resolution_clock::now();
-  auto t = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+  auto t = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
 
-  std::cout << " [" << t.count() << "ms]" << " 1 bloco lido" << std::endl;
+  std::cout << " [" << t.count() << " µs]" << " 1 bloco lido" << std::endl;
 
   if (rec.id == id)
     rec.print();
