@@ -26,6 +26,11 @@ int main(int argc, char* argv[]) {
 
   std::ifstream in(hash_path, std::ios::binary);
 
+  if (!in) {
+    std::cerr << "erro: não foi possível abrir " << hash_path << std::endl;
+    return 1;
+  }
+
   long offset = (id % MAP_SIZE) * sizeof(Record) * 2;
   in.seekg(offset, std::ios::beg);
 

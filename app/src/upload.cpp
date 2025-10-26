@@ -1,6 +1,6 @@
-#include <bits/stdc++.h>
-// #include "b+tree.h"
+#include "b+tree.h"
 #include "record.h"
+#include <bits/stdc++.h>
 
 std::string trim(std::string& field) {
   std::string trimmed = field;
@@ -32,24 +32,26 @@ std::vector<std::string> parse(std::string& line) {
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "uso: " << argv[0] << " <arquivo_csv>" << std::endl;
-    return EXIT_FAILURE;
+    return 1;
   }
 
   system("rm -rf data/db");
   system("mkdir data/db");
 
   std::string csv_path = argv[1];
-  std::string hash_path = "data/db/hash.dat";
-  std::string idx1_path = "data/db/idx1.dat";
-  std::string idx2_path = "data/db/idx2.dat";
+  std::string hash_path = "data/db/hash.bin";
+  std::string idx1_path = "data/db/idx1.bin";
+  std::string idx2_path = "data/db/idx2.bin";
 
   int processed = 0;
   std::vector<std::vector<Record>> hashmap(MAP_SIZE);
+  BPlusTree<int> bptIdx1(170);
+  BPlusTree<std::string> bptIdx2(6);
   std::ifstream csv_file(csv_path);
 
   if (!csv_file) {
     std::cerr << "erro: não foi possível abrir " << csv_path << std::endl;
-    return EXIT_FAILURE;
+    return 1;
   }
 
   std::cout << "=== upload " << csv_path << " ===" << std::endl;
@@ -58,8 +60,10 @@ int main(int argc, char* argv[]) {
 
   for (std::string line; getline(csv_file, line); processed++) {
     std::vector<std::string> fields = parse(line);
-    Record artigo(fields);
-    hashmap[artigo.id % MAP_SIZE].push_back(artigo);
+    Record art(fields);
+    hashmap[art.id % MAP_SIZE].push_back(art);
+    bptIdx1.insert(art.id);
+    bptIdx2.insert(fields[1]);
 
     if (processed % 100000 == 0 && processed > 0) {
       auto tx = std::chrono::high_resolution_clock::now();
@@ -74,6 +78,11 @@ int main(int argc, char* argv[]) {
   std::cout << "populando " << hash_path << "..." << std::endl;
 
   std::ofstream out(hash_path, std::ios::binary);
+
+  if (!out) {
+    std::cerr << "erro: não foi possível criar " << hash_path << std::endl;
+    return 1;
+  }
 
   for (auto& bucket : hashmap) {
     int count = 0;
@@ -97,5 +106,5 @@ int main(int argc, char* argv[]) {
 
   std::cout << " [" << t.count() << "s] " << num_blocks << " blocos escritos" << std::endl;
 
-  return EXIT_SUCCESS;
+  return 0;
 }
