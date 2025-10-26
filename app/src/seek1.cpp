@@ -26,12 +26,10 @@ int main(int argc, char* argv[]) {
   std::cout << "Looking for ID: " << id << std::endl;
   std::cout << "Primary index: " << primary_index_file << std::endl;
 
-  // Initialize primary index
   PrimIdx indice_primario(primary_index_file);
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  // Search in primary index only
   PrimIdxEntry key_entry(id, 0);
   PrimIdxEntry result_entry;
   BuscaEstatisticas index_stats = indice_primario.search(key_entry, result_entry);

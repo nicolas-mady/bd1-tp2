@@ -163,3 +163,12 @@
 //     cout << "Not found" << endl;
 //   return 0;
 // }
+
+#include <bits/stdc++.h>
+
+int main() {
+  std::string s1 = "a";
+  std::string s2 = "z";
+  std::cout << (s1 > s2) << std::endl;
+  return 0;
+}

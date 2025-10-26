@@ -20,12 +20,10 @@ int main(int argc, char* argv[]) {
   std::cout << "Looking for title: \"" << titulo << "\"" << std::endl;
   std::cout << "Secondary index: " << secondary_index_file << std::endl;
 
-  // Initialize secondary index
   SecIdx indice_secundario(secondary_index_file);
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  // Search in secondary index only
   SecIdxEntry key_entry(titulo, 0);
   SecIdxEntry result_entry;
   BuscaEstatisticas index_stats = indice_secundario.search(key_entry, result_entry);

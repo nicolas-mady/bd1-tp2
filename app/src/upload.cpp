@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
-#include <record.hpp>
+// #include "b+tree.h"
+#include "record.h"
 
 std::string trim(std::string& field) {
   std::string trimmed = field;
@@ -37,23 +38,21 @@ int main(int argc, char* argv[]) {
   system("rm -rf data/db");
   system("mkdir data/db");
 
-  std::string csv_file_name = argv[1];
-  std::string hash_file_name = "data/db/hash.dat";
-  // std::string primary_index_file = "data/db/idx1.dat";
-  // std::string secondary_index_file = "data/db/idx2.dat";
-  // PrimIdx indice_primario(primary_index_file);
-  // SecIdx indice_secundario(secondary_index_file);
+  std::string csv_path = argv[1];
+  std::string hash_path = "data/db/hash.dat";
+  std::string idx1_path = "data/db/idx1.dat";
+  std::string idx2_path = "data/db/idx2.dat";
 
-  std::vector<std::vector<Record>> hashmap(MAP_SIZE);
   int processed = 0;
-  std::ifstream csv_file(csv_file_name);
-  
+  std::vector<std::vector<Record>> hashmap(MAP_SIZE);
+  std::ifstream csv_file(csv_path);
+
   if (!csv_file) {
-    std::cerr << "erro: não foi possível abrir " << csv_file_name << std::endl;
+    std::cerr << "erro: não foi possível abrir " << csv_path << std::endl;
     return EXIT_FAILURE;
   }
 
-  std::cout << "=== upload " << csv_file_name << " ===" << std::endl;
+  std::cout << "=== upload " << csv_path << " ===" << std::endl;
 
   auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -61,11 +60,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> fields = parse(line);
     Record artigo(fields);
     hashmap[artigo.id % MAP_SIZE].push_back(artigo);
-    // long hash_position = Artigo::hash_id(id, MAP_SIZE);
-    // PrimIdxEntry prim_entry(id, hash_position);
-    // SecIdxEntry sec_entry(titulo, id);
-    // indice_primario.insert(prim_entry);
-    // indice_secundario.insert(sec_entry);
+
     if (processed % 100000 == 0 && processed > 0) {
       auto tx = std::chrono::high_resolution_clock::now();
       auto t = std::chrono::duration_cast<std::chrono::seconds>(tx - t0);
@@ -76,9 +71,9 @@ int main(int argc, char* argv[]) {
   csv_file.close();
 
   std::cout << std::endl;
-  std::cout << "escrevendo " << hash_file_name << "..." << std::endl;
+  std::cout << "populando " << hash_path << "..." << std::endl;
 
-  std::ofstream out(hash_file_name, std::ios::binary);
+  std::ofstream out(hash_path, std::ios::binary);
 
   for (auto& bucket : hashmap) {
     int count = 0;

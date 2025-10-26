@@ -3,8 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-// Fixed table size based on the known CSV size (1021439 records)
-#define FIXED_TABLE_SIZE 1500000 // ~1.5M slots for load factor of ~0.68
+#define FIXED_TABLE_SIZE 1500000
 
 HashTable::HashTable(const std::string& filename, int table_size) : filename(filename), table_size(FIXED_TABLE_SIZE) {
   record_size = Artigo::getRecordSize();
@@ -14,7 +13,6 @@ HashTable::HashTable(const std::string& filename, int table_size) : filename(fil
 }
 
 HashTable::~HashTable() {
-  // Destructor - no specific resources to clean
 }
 
 bool HashTable::initialize() {
@@ -24,7 +22,6 @@ bool HashTable::initialize() {
     return false;
   }
 
-  // Initialize file with empty blocks
   char empty_block[BLOCK_SIZE];
   memset(empty_block, 0, BLOCK_SIZE);
 
@@ -51,14 +48,12 @@ bool HashTable::insert(const Artigo& artigo) {
   if (!readBlock(block_num, buffer))
     return false;
 
-  // Simple linear probing for collision resolution
   int slot;
   int original_block = block_num;
   int total_blocks = getTotalBlocks();
 
   do {
     if (findFreeSlot(block_num, slot)) {
-      // Read the block if we moved to a different one
       if (block_num != hash_value / records_per_block) {
         if (!readBlock(block_num, buffer))
           return false;
@@ -73,12 +68,10 @@ bool HashTable::insert(const Artigo& artigo) {
     return false;
   }
 
-  // Insert record at found slot
   char* slot_position = buffer + slot * record_size;
 
-  // Simple serialization - store ID first, then the title
   memcpy(slot_position, &artigo.id, sizeof(int));
-  // Copy the title (char array)
+
   memcpy(slot_position + sizeof(int), artigo.titulo,
          std::min((size_t) (record_size - sizeof(int)), (size_t) MAX_TITULO));
 
@@ -101,26 +94,23 @@ BuscaEstatisticas HashTable::search(int id, Artigo& artigo) {
     if (!readBlock(block_num, buffer))
       return stats;
 
-    // Check all slots in block
     for (int slot = 0; slot < records_per_block; slot++) {
       int offset = slot * record_size;
       int stored_id;
       memcpy(&stored_id, buffer + offset, sizeof(int));
 
       if (stored_id == id) {
-        // Simple deserialization - get the title back
         artigo.id = stored_id;
-        // Copy title from buffer to artigo struct
+
         memcpy(artigo.titulo, buffer + offset + sizeof(int),
                std::min((size_t) MAX_TITULO, (size_t) (record_size - sizeof(int))));
-        artigo.titulo[MAX_TITULO] = '\0'; // Ensure null termination
+        artigo.titulo[MAX_TITULO] = '\0';
 
         stats.encontrado = true;
         return stats;
       }
     }
 
-    // Linear probing to next block
     block_num = (block_num + 1) % stats.total_blocos;
 
   } while (block_num != original_block);
@@ -156,10 +146,9 @@ bool HashTable::readBlock(int block_num, char* buffer) {
   file.seekg(block_num * BLOCK_SIZE);
   file.read(buffer, BLOCK_SIZE);
 
-  if (file.gcount() != BLOCK_SIZE) {
-    // Bloco pode estar no final do arquivo - preenche com zeros
+  if (file.gcount() != BLOCK_SIZE)
+
     memset(buffer + file.gcount(), 0, BLOCK_SIZE - file.gcount());
-  }
 
   file.close();
   return true;
@@ -189,13 +178,13 @@ bool HashTable::findFreeSlot(int block_num, int& slot) {
     int stored_id;
     memcpy(&stored_id, buffer + offset, sizeof(int));
 
-    if (stored_id == 0) { // Slot livre (ID = 0)
+    if (stored_id == 0) {
       slot = i;
       return true;
     }
   }
 
-  return false; // Bloco cheio
+  return false;
 }
 
 bool HashTable::fileExists() {

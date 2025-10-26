@@ -1,5 +1,5 @@
-#ifndef RECORD_HPP
-#define RECORD_HPP
+#ifndef RECORD_H
+#define RECORD_H
 
 #include <bits/stdc++.h>
 
@@ -38,31 +38,16 @@ struct Record {
   }
 
   Record(std::vector<std::string>& fields) {
+    id = std::stoi(fields[0]);
+    year = std::stoi(fields[2]);
+    cites = std::stoi(fields[4]);
+
     strncpy(title, fields[1].c_str(), sizeof(title));
     strncpy(authors, fields[3].c_str(), sizeof(authors));
     strncpy(snippet, fields[6].c_str(), sizeof(snippet));
 
     dateTime = parseDateTime(fields[5]);
-
-    id = std::stoi(fields[0]);
-    year = std::stoi(fields[2]);
-    cites = std::stoi(fields[4]);
   }
-
-  // void write(std::string& fname, int pos) {
-  //   std::ofstream out(fname, std::ios::binary | std::ios::in | std::ios::out);
-  //   long offset = pos * REC_SIZE;
-  //   out.seekp(offset, std::ios::beg);
-  //   out.write(reinterpret_cast<const char*>(this), sizeof(Record));
-  // }
-
-  // void read(std::string& fname, int pos) {
-  //   std::ifstream in(fname, std::ios::binary);
-  //   long offset = pos * sizeof(Record);
-  //   in.seekg(offset, std::ios::beg);
-  //   Record rec;
-  //   in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
-  // }
 
   void print() {
     std::cout << "         ID: " << id << std::endl;
@@ -75,4 +60,4 @@ struct Record {
   }
 };
 
-#endif // RECORD_HPP
+#endif

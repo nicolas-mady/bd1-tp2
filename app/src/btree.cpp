@@ -13,7 +13,6 @@ BPlusTree<T>::BPlusTree(const std::string& filename)
 
 template <typename T>
 BPlusTree<T>::~BPlusTree() {
-  // Simple destructor - no complex caching to clean
 }
 
 template <typename T>
@@ -24,7 +23,6 @@ bool BPlusTree<T>::initialize() {
     return false;
   }
 
-  // Create initial root node
   BTreeNode<T> root;
   root.is_leaf = true;
   root.num_keys = 0;
@@ -35,7 +33,6 @@ bool BPlusTree<T>::initialize() {
   file.write(reinterpret_cast<const char*>(&root), node_size);
   file.close();
 
-  // Clear cache and statistics
   node_cache.clear();
   cache_lru.clear();
   cache_hits = 0;
@@ -52,7 +49,6 @@ bool BPlusTree<T>::insert(const T& entry) {
       return false;
   }
 
-  // Simplified insert - just add to leaf nodes for this workload
   return insertIntoNode(root_position, entry);
 }
 
@@ -73,7 +69,6 @@ BuscaEstatisticas BPlusTree<T>::search(const T& key, T& result) {
 
     stats.blocos_lidos++;
 
-    // Simple linear search in node
     for (int i = 0; i < node.num_keys; i++) {
       if (compare(node.keys[i], key) == 0 && matches(node.keys[i], key)) {
         result = node.keys[i];
@@ -82,11 +77,9 @@ BuscaEstatisticas BPlusTree<T>::search(const T& key, T& result) {
       }
     }
 
-    // If leaf node, we're done
     if (node.is_leaf)
       break;
 
-    // Otherwise, follow first child for simplicity
     current_pos = node.children[0];
   }
 
@@ -112,7 +105,6 @@ void BPlusTree<T>::getCacheStats(size_t& hits, size_t& misses) const {
 
 template <typename T>
 bool BPlusTree<T>::flushCache() {
-  // Simplified - no complex cache to flush
   return true;
 }
 
@@ -121,7 +113,6 @@ void BPlusTree<T>::printPerformanceStats() const {
   std::cout << "Cache hits: " << cache_hits << ", misses: " << cache_misses << std::endl;
 }
 
-// Simple helper methods
 template <typename T>
 bool BPlusTree<T>::readNode(long position, BTreeNode<T>& node) const {
   std::ifstream file(filename, std::ios::binary);
@@ -157,18 +148,15 @@ bool BPlusTree<T>::insertIntoNode(long node_pos, const T& entry, long child_pos)
   if (!readNode(node_pos, node))
     return false;
 
-  // Simple insertion - just add if there's space
   if (node.num_keys < BTREE_ORDER) {
     node.keys[node.num_keys] = entry;
     node.num_keys++;
     return writeNode(node_pos, node);
   }
 
-  // For simplicity, don't handle splits in this minimal version
   return false;
 }
 
-// Comparison functions for different types
 template <>
 int BPlusTree<PrimIdxEntry>::compare(const PrimIdxEntry& a, const PrimIdxEntry& b) { return a.id - b.id; }
 
@@ -187,10 +175,8 @@ bool BPlusTree<SecIdxEntry>::matches(const SecIdxEntry& entry, const SecIdxEntry
   return strcmp(entry.titulo, key.titulo) == 0;
 }
 
-// Explicit instantiation for the types we use
 template class BPlusTree<PrimIdxEntry>;
 template class BPlusTree<SecIdxEntry>;
 
-// Type aliases as defined in artigo.h
 typedef BPlusTree<PrimIdxEntry> PrimIdx;
 typedef BPlusTree<SecIdxEntry> SecIdx;

@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-#include <record.hpp>
+#include <record.h>
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
@@ -13,18 +13,18 @@ int main(int argc, char* argv[]) {
     if (id < 1)
       throw std::exception();
   } catch (const std::exception& e) {
-    std::cerr << "id inválido: " << argv[1] << std::endl;
+    std::cerr << "erro: id inválido: " << argv[1] << std::endl;
     return 1;
   }
 
-  std::string hash_file_name = "data/db/hash.dat";
+  std::string hash_path = "data/db/hash.dat";
 
   std::cout << "=== findrec " << id << " ===" << std::endl;
-  std::cout << "buscando em " << hash_file_name << std::endl;
+  std::cout << "buscando em " << hash_path << std::endl;
 
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::ifstream in(hash_file_name, std::ios::binary);
+  std::ifstream in(hash_path, std::ios::binary);
 
   long offset = (id % MAP_SIZE) * sizeof(Record) * 2;
   in.seekg(offset, std::ios::beg);
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
 
   in.close();
-  
+
   auto t1 = std::chrono::high_resolution_clock::now();
   auto t = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
 
