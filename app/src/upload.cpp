@@ -61,8 +61,8 @@ int main(int argc, char* argv[]) {
   for (std::string line; getline(csv_file, line); processed++) {
     std::vector<std::string> fields = parse(line);
     Record art(fields);
-    hashmap[art.id % MAP_SIZE].push_back(art);
-    bptIdx1.insert(art.id);
+    // hashmap[art.id % MAP_SIZE].push_back(art);
+    // bptIdx1.insert(art.id);
     bptIdx2.insert(fields[1]);
 
     if (processed % 100000 == 0 && processed > 0) {
@@ -74,37 +74,49 @@ int main(int argc, char* argv[]) {
 
   csv_file.close();
 
-  std::cout << std::endl;
-  std::cout << "populando " << hash_path << "..." << std::endl;
+  // bptIdx2.traverse();
+  // if (bptIdx1.search(100000000) != nullptr) {
+  //   std::cout << "achou!" << std::endl;
+  // } else {
+  //   std::cout << "não achou!" << std::endl;
+  // }
 
-  std::ofstream out(hash_path, std::ios::binary);
+  /*   std::cout << std::endl;
+    std::cout << "populando " << hash_path << "..." << std::endl;
 
-  if (!out) {
-    std::cerr << "erro: não foi possível criar " << hash_path << std::endl;
-    return 1;
-  }
+    std::ofstream out(hash_path, std::ios::binary);
 
-  for (auto& bucket : hashmap) {
-    int count = 0;
-
-    for (const Record& record : bucket) {
-      out.write(reinterpret_cast<const char*>(&record), sizeof(Record));
-      count++;
+    if (!out) {
+      std::cerr << "erro: não foi possível criar " << hash_path << std::endl;
+      return 1;
     }
 
-    for (; count < 2; count++)
-      out.write(std::string(sizeof(Record), '\0').c_str(), sizeof(Record));
-  }
+    for (auto& bucket : hashmap) {
+      int count = 0;
 
-  long file_size = out.tellp();
-  out.close();
+      for (const Record& record : bucket) {
+        out.write(reinterpret_cast<const char*>(&record), sizeof(Record));
+        count++;
+      }
 
-  auto tx = std::chrono::high_resolution_clock::now();
-  auto t = std::chrono::duration_cast<std::chrono::seconds>(tx - t0);
+      for (; count < 2; count++)
+        out.write(std::string(sizeof(Record), '\0').c_str(), sizeof(Record));
+    }
 
-  int num_blocks = (file_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    long file_size = out.tellp();
+    out.close();
 
-  std::cout << " [" << t.count() << "s] " << num_blocks << " blocos escritos" << std::endl;
+    auto tx = std::chrono::high_resolution_clock::now();
+    auto t = std::chrono::duration_cast<std::chrono::seconds>(tx - t0);
 
+    int num_blocks = (file_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    std::cout << " [" << t.count() << "s] " << num_blocks << " blocos escritos" << std::endl;
+
+
+    std::cout << "populando " << idx1_path << "..." << std::endl;
+
+
+    */
   return 0;
 }

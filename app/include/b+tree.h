@@ -1,26 +1,9 @@
 #ifndef BPLUSTREE_H
 #define BPLUSTREE_H
 
-// #include "record.h"
 #include <bits/stdc++.h>
 
-int binary_search(const std::vector<std::string>& vec, const std::string& value) {
-  int left = 0;
-  int right = vec.size() - 1;
-
-  while (left <= right) {
-    int mid = left + (right - left) / 2;
-    if (vec[mid] == value)
-      return mid;
-    else if (vec[mid] < value)
-      left = mid + 1;
-    else
-      right = mid - 1;
-  }
-  return -1;
-}
-
-template <typename T> //, typename Compare = std::less<T>>
+template <typename T>
 class BPlusTree {
 private:
 
@@ -33,15 +16,6 @@ private:
 
   Node* root;
   int m;
-
-  /* Node* findLeaf(Node* node, const T& key) {
-    if (node->isLeaf)
-      return node;
-    for (size_t i = 0; i < node->keys.size(); ++i)
-      if (key < node->keys[i])
-        return findLeaf(node->children[i], key);
-    return findLeaf(node->children.back(), key);
-  } */
 
   std::vector<Node*> findLeaf(const T& key) {
     std::vector<Node*> path;
@@ -61,31 +35,72 @@ private:
     return path;
   }
 
-  void split(Node* node, std::vector<Node*> path) {
-    if (node->keys.size() <= 2 * m)
-      return;
+  void insertInternal(Node* parent, Node* child, const T& key) {
+    auto it = std::upper_bound(parent->keys.begin(), parent->keys.end(), key);
+    int i = std::distance(parent->keys.begin(), it);
+    parent->keys.insert(it, key);
+    parent->children.insert(parent->children.begin() + i + 1, child);
 
-    Node* newNode = new Node();
-    newNode->isLeaf = node->isLeaf;
-    newNode->keys.assign(node->keys.begin() + m, node->keys.end());
-    node->keys.resize(m);
-    if (node->isLeaf) {
-      newNode->next = node->next;
-      node->next = newNode;
-    } else {
-      newNode->children.assign(node->children.begin() + m, node->children.end());
-      node->children.resize(m);
-    }
+    if (parent->keys.size() > 2 * m) {
+      Node* newParent = new Node();
+      newParent->isLeaf = false;
 
-    T midKey;
-    if (node->isLeaf) {
-      midKey = newNode->keys[0];
-    } else {
-      midKey = node->keys.back();
-      node->keys.pop_back();
-      newNode->children.assign(node->children.begin() + m + 1, node->children.end());
-      node->children.resize(m + 1);
+      T midKey = parent->keys[m];
+      parent->keys.erase(parent->keys.begin() + m);
+
+      newParent->keys.assign(parent->keys.begin() + m, parent->keys.end());
+      parent->keys.erase(parent->keys.begin() + m, parent->keys.end());
+
+      newParent->children.assign(parent->children.begin() + m + 1, parent->children.end());
+      parent->children.erase(parent->children.begin() + m + 1, parent->children.end());
+
+      Node* grandParent = findParent(root, parent);
+      if (grandParent == nullptr) {
+        Node* newRoot = new Node();
+        newRoot->isLeaf = false;
+        newRoot->keys.push_back(midKey);
+        newRoot->children.push_back(parent);
+        newRoot->children.push_back(newParent);
+        root = newRoot;
+      } else {
+        insertInternal(grandParent, newParent, midKey);
+      }
     }
+  }
+
+  Node* findParent(Node* node, Node* child) {
+    if (node == nullptr || node->isLeaf)
+      return nullptr;
+
+    for (auto c : node->children)
+      if (c == child)
+        return node;
+
+    for (auto c : node->children) {
+      Node* parent = findParent(c, child);
+      if (parent != nullptr)
+        return parent;
+    }
+    return nullptr;
+  }
+
+  // Generic separator function (for int, etc.)
+  template <typename U = T>
+  typename std::enable_if<!std::is_same<U, std::string>::value, T>::type
+  get_separator(const T& key, const T& last_key_in_prev_node) {
+    return key;
+  }
+
+  // Specialized separator function for std::string (prefix optimization)
+  template <typename U = T>
+  typename std::enable_if<std::is_same<U, std::string>::value, std::string>::type
+  get_separator(const std::string& key, const std::string& last_key_in_prev_node) {
+    size_t len = 0;
+    while (len < key.length() && len < last_key_in_prev_node.length() && key[len] == last_key_in_prev_node[len])
+      len++;
+    if (len < key.length())
+      return key.substr(0, len + 1);
+    return key;
   }
 
 public:
@@ -99,15 +114,54 @@ public:
   void insert(const T& key) {
     auto path = findLeaf(key);
     auto leaf = path.back();
-    path.pop_back();
-    leaf->keys.push_back(key);
-    std::sort(leaf->keys.begin(), leaf->keys.end());
-    split(leaf, path);
+
+    auto it = std::lower_bound(leaf->keys.begin(), leaf->keys.end(), key);
+    leaf->keys.insert(it, key);
+
+    if (leaf->keys.size() > 2 * m) {
+      Node* newLeaf = new Node();
+      newLeaf->isLeaf = true;
+
+      T last_key_in_old_leaf = leaf->keys.back();
+
+      newLeaf->keys.assign(leaf->keys.begin() + m, leaf->keys.end());
+      leaf->keys.erase(leaf->keys.begin() + m, leaf->keys.end());
+
+      newLeaf->next = leaf->next;
+      leaf->next = newLeaf;
+
+      T midKey = get_separator(newLeaf->keys[0], last_key_in_old_leaf);
+      Node* parent = findParent(root, leaf);
+
+      if (parent == nullptr) {
+        Node* newRoot = new Node();
+        newRoot->isLeaf = false;
+        newRoot->keys.push_back(midKey);
+        newRoot->children.push_back(leaf);
+        newRoot->children.push_back(newLeaf);
+        root = newRoot;
+      } else {
+        insertInternal(parent, newLeaf, midKey);
+      }
+    }
   }
 
   Node* search(const T& key) const {
     auto leaf = findLeaf(key).back();
     return std::binary_search(leaf->keys.begin(), leaf->keys.end(), key) ? leaf : nullptr;
+  }
+
+  void traverse() const {
+    auto node = root;
+    while (!node->isLeaf)
+      node = node->children[0];
+
+    while (node != nullptr) {
+      for (const auto& key : node->keys)
+        std::cout << key << std::endl;
+      node = node->next;
+    }
+    std::cout << std::endl;
   }
 };
 
