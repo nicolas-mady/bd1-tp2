@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::string hash_path = "data/db/hash.dat";
+  std::string hash_path = "data/db/hash.bin";
 
   std::cout << "=== findrec " << id << " ===" << std::endl;
   std::cout << "buscando em " << hash_path << std::endl;

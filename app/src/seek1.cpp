@@ -1,9 +1,6 @@
-#include "artigo.h"
-#include "btree.h"
-#include <chrono>
-#include <cstdlib>
-#include <iomanip>
-#include <iostream>
+#include "b+tree.h"
+#include "record.h"
+#include <bits/stdc++.h>
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
@@ -20,45 +17,60 @@ int main(int argc, char* argv[]) {
   }
 
   std::string data_dir = std::getenv("DATA_DIR") ? std::getenv("DATA_DIR") : "data/db";
-  std::string primary_index_file = data_dir + "/prim_idx.dat";
+  std::string primary_index_file = data_dir + "/idx1.bin";
 
-  std::cout << "=== SEEK1 - Search via Primary Index (B+Tree Only) ===" << std::endl;
+  std::cout << "=== SEEK1 - Search via Primary Index (B+Tree Lazy Loading) ===" << std::endl;
   std::cout << "Looking for ID: " << id << std::endl;
   std::cout << "Primary index: " << primary_index_file << std::endl;
 
-  PrimIdx indice_primario(primary_index_file);
+  // Carregar árvore B+ com lazy loading
+  BPlusTree<int> bptree(170);
 
-  auto start_time = std::chrono::high_resolution_clock::now();
+  auto load_start = std::chrono::high_resolution_clock::now();
 
-  PrimIdxEntry key_entry(id, 0);
-  PrimIdxEntry result_entry;
-  BuscaEstatisticas index_stats = indice_primario.search(key_entry, result_entry);
+  if (!bptree.loadFromFile(primary_index_file)) {
+    std::cerr << "Erro: não foi possível carregar o índice primário" << std::endl;
+    return 1;
+  }
 
-  auto end_time = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+  auto load_end = std::chrono::high_resolution_clock::now();
+  auto load_duration = std::chrono::duration_cast<std::chrono::microseconds>(load_end - load_start);
+
+  std::cout << "Índice carregado (lazy loading) em " << load_duration.count() << " µs" << std::endl;
+  std::cout << "Nós carregados inicialmente: " << bptree.getLoadedNodesCount()
+            << " de " << bptree.getTotalNodesCount() << std::endl;
+
+  // Buscar o ID
+  auto search_start = std::chrono::high_resolution_clock::now();
+
+  auto result = bptree.search(id);
+
+  auto search_end = std::chrono::high_resolution_clock::now();
+  auto search_duration = std::chrono::duration_cast<std::chrono::microseconds>(search_end - search_start);
 
   std::cout << std::endl
             << "=== SEARCH RESULTS ===" << std::endl;
 
-  if (index_stats.encontrado) {
+  if (result != nullptr) {
     std::cout << "RECORD FOUND IN PRIMARY INDEX:" << std::endl;
     std::cout << "--------------------------------" << std::endl;
-    std::cout << "ID: " << result_entry.id << std::endl;
-    std::cout << "Hash Position: " << result_entry.posicao_hash << std::endl;
+    std::cout << "ID: " << id << std::endl;
+    std::cout << "Node contains " << result->keys.size() << " keys" << std::endl;
   } else {
     std::cout << "RECORD NOT FOUND IN PRIMARY INDEX" << std::endl;
   }
 
   std::cout << std::endl
             << "=== SEARCH STATISTICS ===" << std::endl;
-  std::cout << "Index blocks read: " << index_stats.blocos_lidos << std::endl;
-  std::cout << "Total index blocks: " << index_stats.total_blocos << std::endl;
-  std::cout << "Search time: " << duration.count() << " µs" << std::endl;
+  std::cout << "Total nodes in tree: " << bptree.getTotalNodesCount() << std::endl;
+  std::cout << "Nodes loaded during search: " << bptree.getLoadedNodesCount() << std::endl;
+  std::cout << "Index load time: " << load_duration.count() << " µs" << std::endl;
+  std::cout << "Search time: " << search_duration.count() << " µs" << std::endl;
 
-  if (index_stats.total_blocos > 0) {
-    double access_percent = (double) index_stats.blocos_lidos / index_stats.total_blocos * 100.0;
-    std::cout << "Index accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
+  if (bptree.getTotalNodesCount() > 0) {
+    double access_percent = (double) bptree.getLoadedNodesCount() / bptree.getTotalNodesCount() * 100.0;
+    std::cout << "Nodes accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
   }
 
-  return index_stats.encontrado ? 0 : 1;
+  return result != nullptr ? 0 : 1;
 }
