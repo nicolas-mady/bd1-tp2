@@ -1,32 +1,23 @@
 # exemplo base: pode usar debian:bookworm-slim ou ubuntu:24.04
-FROM ubuntu:22.04
-
-# Evita prompts interativos durante instalação
-ENV DEBIAN_FRONTEND=noninteractive
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ make cmake && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Copia apenas os arquivos necessários primeiro (melhor cache)
 COPY include/ include/
 COPY src/ src/
 COPY Makefile .
-COPY data/ data/
-
-# Processa o arquivo CSV para remover quebras de linha indevidas
-RUN sed -i ':a;N;$!ba;s/\n[a-z]//g' data/artigo.csv
 
 # compile usando Makefile padrão (ajuste conforme seu build)
-RUN make clean && make build
+RUN make
 
 # diretório para dados persistentes (montado como volume)
 VOLUME ["/data"]
 
 # variáveis de ambiente para facilitar testes
-ENV CSV_PATH=/data/input.csv \
+ENV CSV_PATH=/data/artigo.csv \
     DATA_DIR=/data/db \
     LOG_LEVEL=info
 

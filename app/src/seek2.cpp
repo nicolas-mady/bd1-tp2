@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
       for (int tries = 0; rec.id != id && tries < 2; tries++)
         in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
 
+      std::cout << std::endl;
       rec.print();
     }
     in.close();
