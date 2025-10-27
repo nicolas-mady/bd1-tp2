@@ -5,242 +5,194 @@
 #include <bits/stdc++.h>
 
 template <typename T>
-class BPlusTree
-{
+class BPlusTree {
 private:
-  // Helper function to print keys
+
   template <typename U = T>
   typename std::enable_if<!std::is_same<U, std::pair<std::string, int>>::value>::type
-  print_key(const T &key) const
-  {
+  print_key(const T& key) const {
     std::cout << key << std::endl;
   }
 
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value>::type
-  print_key(const std::pair<std::string, int> &key) const
-  {
+  print_key(const std::pair<std::string, int>& key) const {
     std::cout << "(" << key.second << ", " << key.first << ")" << std::endl;
   }
 
-  struct Node
-  {
+  struct Node {
     bool isLeaf;
     std::vector<T> keys;
-    std::vector<Node *> children;
-    Node *next;
+    std::vector<Node*> children;
+    Node* next;
 
-    // Para lazy loading
     bool isLoaded;
     int nodeId;
     std::streampos filePosition;
   };
 
-  Node *root;
+  Node* root;
   int m;
 
-  // Para lazy loading
   mutable std::ifstream lazyFile;
   std::string fileName;
-  mutable std::unordered_map<int, Node *> nodeCache;
+  mutable std::unordered_map<int, Node*> nodeCache;
   std::unordered_map<int, std::streampos> nodePositions;
   bool isLazyMode;
 
-  // Helper functions for serialization
-  void saveNodeToFile(std::ofstream &file, Node *node, std::unordered_map<Node *, int> &nodeIds, int &nextId)
-  {
+  void saveNodeToFile(std::ofstream& file, Node* node, std::unordered_map<Node*, int>& nodeIds, int& nextId) {
     if (!node)
       return;
 
-    // Assign ID to this node if not already assigned
     if (nodeIds.find(node) == nodeIds.end())
       nodeIds[node] = nextId++;
 
     int nodeId = nodeIds[node];
-    file.write(reinterpret_cast<const char *>(&nodeId), sizeof(int));
-    file.write(reinterpret_cast<const char *>(&node->isLeaf), sizeof(bool));
+    file.write(reinterpret_cast<const char*>(&nodeId), sizeof(int));
+    file.write(reinterpret_cast<const char*>(&node->isLeaf), sizeof(bool));
 
-    // Save keys
     size_t keyCount = node->keys.size();
-    file.write(reinterpret_cast<const char *>(&keyCount), sizeof(size_t));
-    for (const auto &key : node->keys)
+    file.write(reinterpret_cast<const char*>(&keyCount), sizeof(size_t));
+    for (const auto& key : node->keys)
       saveKey(file, key);
 
-    // Save children for internal nodes
-    if (!node->isLeaf)
-    {
+    if (!node->isLeaf) {
       size_t childCount = node->children.size();
-      file.write(reinterpret_cast<const char *>(&childCount), sizeof(size_t));
-      for (auto child : node->children)
-      {
+      file.write(reinterpret_cast<const char*>(&childCount), sizeof(size_t));
+      for (auto child : node->children) {
         if (nodeIds.find(child) == nodeIds.end())
           nodeIds[child] = nextId++;
         int childId = nodeIds[child];
-        file.write(reinterpret_cast<const char *>(&childId), sizeof(int));
+        file.write(reinterpret_cast<const char*>(&childId), sizeof(int));
       }
     }
 
-    // Save next pointer for leaf nodes
-    if (node->isLeaf)
-    {
+    if (node->isLeaf) {
       int nextId = -1;
-      if (node->next)
-      {
+      if (node->next) {
         if (nodeIds.find(node->next) == nodeIds.end())
           nodeIds[node->next] = nextId++;
         nextId = nodeIds[node->next];
       }
-      file.write(reinterpret_cast<const char *>(&nextId), sizeof(int));
+      file.write(reinterpret_cast<const char*>(&nextId), sizeof(int));
     }
   }
 
-  // Template specializations for saving different key types
   template <typename U = T>
   typename std::enable_if<std::is_same<U, int>::value>::type
-  saveKey(std::ofstream &file, const int &key)
-  {
-    file.write(reinterpret_cast<const char *>(&key), sizeof(int));
+  saveKey(std::ofstream& file, const int& key) {
+    file.write(reinterpret_cast<const char*>(&key), sizeof(int));
   }
 
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value>::type
-  saveKey(std::ofstream &file, const std::pair<std::string, int> &key)
-  {
+  saveKey(std::ofstream& file, const std::pair<std::string, int>& key) {
     size_t strLen = key.first.length();
-    file.write(reinterpret_cast<const char *>(&strLen), sizeof(size_t));
+    file.write(reinterpret_cast<const char*>(&strLen), sizeof(size_t));
     file.write(key.first.c_str(), strLen);
-    file.write(reinterpret_cast<const char *>(&key.second), sizeof(int));
+    file.write(reinterpret_cast<const char*>(&key.second), sizeof(int));
   }
 
-  // Template specializations for loading different key types
   template <typename U = T>
   typename std::enable_if<std::is_same<U, int>::value, int>::type
-  loadKey(std::ifstream &file) const
-  {
+  loadKey(std::ifstream& file) const {
     int key;
-    file.read(reinterpret_cast<char *>(&key), sizeof(int));
+    file.read(reinterpret_cast<char*>(&key), sizeof(int));
     return key;
   }
 
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value, std::pair<std::string, int>>::type
-  loadKey(std::ifstream &file) const
-  {
+  loadKey(std::ifstream& file) const {
     size_t strLen;
-    file.read(reinterpret_cast<char *>(&strLen), sizeof(size_t));
+    file.read(reinterpret_cast<char*>(&strLen), sizeof(size_t));
     std::string str(strLen, '\0');
     file.read(&str[0], strLen);
     int value;
-    file.read(reinterpret_cast<char *>(&value), sizeof(int));
+    file.read(reinterpret_cast<char*>(&value), sizeof(int));
     return std::make_pair(str, value);
   }
 
-  // Método para carregar um nó específico do disco
-  Node *loadNodeById(int nodeId) const
-  {
-    // Verificar se já está no cache
+  Node* loadNodeById(int nodeId) const {
     auto it = nodeCache.find(nodeId);
     if (it != nodeCache.end())
       return it->second;
 
-    // Verificar se temos a posição do nó
     auto posIt = nodePositions.find(nodeId);
     if (posIt == nodePositions.end())
       return nullptr;
 
-    // Abrir arquivo se necessário
-    if (!lazyFile.is_open())
-    {
+    if (!lazyFile.is_open()) {
       lazyFile.open(fileName, std::ios::binary);
       if (!lazyFile)
         return nullptr;
     }
 
-    // Ir para a posição do nó
     lazyFile.seekg(posIt->second);
 
-    // Ler dados do nó
-    Node *node = new Node();
+    Node* node = new Node();
     node->nodeId = nodeId;
     node->isLoaded = true;
 
     int readNodeId;
-    lazyFile.read(reinterpret_cast<char *>(&readNodeId), sizeof(int));
-    lazyFile.read(reinterpret_cast<char *>(&node->isLeaf), sizeof(bool));
+    lazyFile.read(reinterpret_cast<char*>(&readNodeId), sizeof(int));
+    lazyFile.read(reinterpret_cast<char*>(&node->isLeaf), sizeof(bool));
 
-    // Carregar chaves
     size_t keyCount;
-    lazyFile.read(reinterpret_cast<char *>(&keyCount), sizeof(size_t));
+    lazyFile.read(reinterpret_cast<char*>(&keyCount), sizeof(size_t));
     node->keys.reserve(keyCount);
     for (size_t i = 0; i < keyCount; i++)
       node->keys.push_back(loadKey(lazyFile));
 
-    // Carregar IDs dos filhos (para nós internos)
-    if (!node->isLeaf)
-    {
+    if (!node->isLeaf) {
       size_t childCount;
-      lazyFile.read(reinterpret_cast<char *>(&childCount), sizeof(size_t));
+      lazyFile.read(reinterpret_cast<char*>(&childCount), sizeof(size_t));
       node->children.resize(childCount);
-      for (size_t i = 0; i < childCount; i++)
-      {
+      for (size_t i = 0; i < childCount; i++) {
         int childId;
-        lazyFile.read(reinterpret_cast<char *>(&childId), sizeof(int));
-        // Criar placeholder para o filho (será carregado sob demanda)
-        Node *childPlaceholder = new Node();
+        lazyFile.read(reinterpret_cast<char*>(&childId), sizeof(int));
+
+        Node* childPlaceholder = new Node();
         childPlaceholder->nodeId = childId;
         childPlaceholder->isLoaded = false;
-        childPlaceholder->isLeaf = false; // Assumir não-folha até carregar
+        childPlaceholder->isLeaf = false;
         childPlaceholder->next = nullptr;
         node->children[i] = childPlaceholder;
       }
-    }
-    else
-    {
-      node->children.clear(); // Garantir que folhas não tenham filhos
+    } else {
+      node->children.clear();
     }
 
-    // Carregar ID do próximo nó (para folhas)
-    if (node->isLeaf)
-    {
+    if (node->isLeaf) {
       int nextId;
-      lazyFile.read(reinterpret_cast<char *>(&nextId), sizeof(int));
-      if (nextId != -1)
-      {
-        Node *nextPlaceholder = new Node();
+      lazyFile.read(reinterpret_cast<char*>(&nextId), sizeof(int));
+      if (nextId != -1) {
+        Node* nextPlaceholder = new Node();
         nextPlaceholder->nodeId = nextId;
         nextPlaceholder->isLoaded = false;
-        nextPlaceholder->isLeaf = true; // Próximo de folha também é folha
+        nextPlaceholder->isLeaf = true;
         nextPlaceholder->next = nullptr;
         node->next = nextPlaceholder;
-      }
-      else
-      {
+      } else {
         node->next = nullptr;
       }
-    }
-    else
-    {
-      node->next = nullptr; // Nós internos não têm next
+    } else {
+      node->next = nullptr;
     }
 
-    // Adicionar ao cache
     nodeCache[nodeId] = node;
     return node;
   }
 
-  // Método para garantir que um nó está carregado
-  Node *ensureLoaded(Node *node) const
-  {
+  Node* ensureLoaded(Node* node) const {
     if (!node)
       return nullptr;
 
     if (node->isLoaded || !isLazyMode)
       return node;
 
-    Node *loadedNode = loadNodeById(node->nodeId);
-    if (loadedNode && loadedNode != node)
-    {
-      // Copiar dados do nó carregado para o placeholder
+    Node* loadedNode = loadNodeById(node->nodeId);
+    if (loadedNode && loadedNode != node) {
       node->isLeaf = loadedNode->isLeaf;
       node->keys = loadedNode->keys;
       node->children = loadedNode->children;
@@ -248,10 +200,8 @@ private:
       node->isLoaded = true;
       node->filePosition = loadedNode->filePosition;
 
-      // Atualizar cache para apontar para o nó original
       nodeCache[node->nodeId] = node;
 
-      // Não deletar loadedNode se for diferente do cache
       if (nodeCache.find(node->nodeId) != nodeCache.end() &&
           nodeCache[node->nodeId] != loadedNode)
         delete loadedNode;
@@ -259,17 +209,14 @@ private:
     return node->isLoaded ? node : nullptr;
   }
 
-  std::vector<Node *> findLeaf(const T &key) const
-  {
-    std::vector<Node *> path;
+  std::vector<Node*> findLeaf(const T& key) const {
+    std::vector<Node*> path;
     auto node = root;
 
     if (!node)
-      return path; // Verificação de segurança
+      return path;
 
-    while (node && !node->isLeaf)
-    {
-      // Garantir que o nó está carregado
+    while (node && !node->isLeaf) {
       node = ensureLoaded(node);
       if (!node)
         break;
@@ -277,24 +224,19 @@ private:
       path.push_back(node);
       auto it = std::upper_bound(node->keys.begin(), node->keys.end(), key);
 
-      if (it == node->keys.end())
-      {
+      if (it == node->keys.end()) {
         if (node->children.empty())
           break;
         node = node->children.back();
-      }
-      else
-      {
+      } else {
         int i = std::distance(node->keys.begin(), it);
-        if (i >= (int)node->children.size())
+        if (i >= (int) node->children.size())
           break;
         node = node->children[i];
       }
     }
 
-    // Garantir que a folha está carregada
-    if (node)
-    {
+    if (node) {
       node = ensureLoaded(node);
       if (node)
         path.push_back(node);
@@ -302,16 +244,14 @@ private:
     return path;
   }
 
-  void insertInternal(Node *parent, Node *child, const T &key)
-  {
+  void insertInternal(Node* parent, Node* child, const T& key) {
     auto it = std::upper_bound(parent->keys.begin(), parent->keys.end(), key);
     int i = std::distance(parent->keys.begin(), it);
     parent->keys.insert(it, key);
     parent->children.insert(parent->children.begin() + i + 1, child);
 
-    if (parent->keys.size() > 2 * m)
-    {
-      Node *newParent = new Node();
+    if (parent->keys.size() > 2 * m) {
+      Node* newParent = new Node();
       newParent->isLeaf = false;
 
       T midKey = parent->keys[m];
@@ -323,25 +263,21 @@ private:
       newParent->children.assign(parent->children.begin() + m + 1, parent->children.end());
       parent->children.erase(parent->children.begin() + m + 1, parent->children.end());
 
-      Node *grandParent = findParent(root, parent);
-      if (grandParent == nullptr)
-      {
-        Node *newRoot = new Node();
+      Node* grandParent = findParent(root, parent);
+      if (grandParent == nullptr) {
+        Node* newRoot = new Node();
         newRoot->isLeaf = false;
         newRoot->keys.push_back(midKey);
         newRoot->children.push_back(parent);
         newRoot->children.push_back(newParent);
         root = newRoot;
-      }
-      else
-      {
+      } else {
         insertInternal(grandParent, newParent, midKey);
       }
     }
   }
 
-  Node *findParent(Node *node, Node *child)
-  {
+  Node* findParent(Node* node, Node* child) {
     if (node == nullptr || node->isLeaf)
       return nullptr;
 
@@ -349,28 +285,23 @@ private:
       if (c == child)
         return node;
 
-    for (auto c : node->children)
-    {
-      Node *parent = findParent(c, child);
+    for (auto c : node->children) {
+      Node* parent = findParent(c, child);
       if (parent != nullptr)
         return parent;
     }
     return nullptr;
   }
 
-  // Generic separator function (for int, etc.)
   template <typename U = T>
   typename std::enable_if<!std::is_same<U, std::pair<std::string, int>>::value, T>::type
-  get_separator(const T &key, const T &last_key_in_prev_node)
-  {
+  get_separator(const T& key, const T& last_key_in_prev_node) {
     return key;
   }
 
-  // Specialized separator function for std::string (prefix optimization)
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::string>::value, std::string>::type
-  get_separator(const std::string &key, const std::string &last_key_in_prev_node)
-  {
+  get_separator(const std::string& key, const std::string& last_key_in_prev_node) {
     size_t len = 0;
     while (len < key.length() && len < last_key_in_prev_node.length() && key[len] == last_key_in_prev_node[len])
       len++;
@@ -379,13 +310,11 @@ private:
     return key;
   }
 
-  // Specialized separator function for std::pair<std::string, int> (prefix optimization on string part)
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value, std::pair<std::string, int>>::type
-  get_separator(const std::pair<std::string, int> &key, const std::pair<std::string, int> &last_key_in_prev_node)
-  {
-    const std::string &key_str = key.first;
-    const std::string &last_key_str = last_key_in_prev_node.first;
+  get_separator(const std::pair<std::string, int>& key, const std::pair<std::string, int>& last_key_in_prev_node) {
+    const std::string& key_str = key.first;
+    const std::string& last_key_str = last_key_in_prev_node.first;
 
     size_t len = 0;
     while (len < key_str.length() && len < last_key_str.length() && key_str[len] == last_key_str[len])
@@ -397,8 +326,8 @@ private:
   }
 
 public:
-  BPlusTree(int m) : m(m), isLazyMode(false)
-  {
+
+  BPlusTree(int m) : m(m), isLazyMode(false) {
     root = new Node();
     root->isLeaf = true;
     root->next = nullptr;
@@ -406,17 +335,15 @@ public:
     root->nodeId = -1;
   }
 
-  void insert(const T &key)
-  {
+  void insert(const T& key) {
     auto path = findLeaf(key);
     auto leaf = path.back();
 
     auto it = std::lower_bound(leaf->keys.begin(), leaf->keys.end(), key);
     leaf->keys.insert(it, key);
 
-    if (leaf->keys.size() > 2 * m)
-    {
-      Node *newLeaf = new Node();
+    if (leaf->keys.size() > 2 * m) {
+      Node* newLeaf = new Node();
       newLeaf->isLeaf = true;
 
       T last_key_in_old_leaf = leaf->keys.back();
@@ -428,26 +355,22 @@ public:
       leaf->next = newLeaf;
 
       T midKey = get_separator(newLeaf->keys[0], last_key_in_old_leaf);
-      Node *parent = findParent(root, leaf);
+      Node* parent = findParent(root, leaf);
 
-      if (parent == nullptr)
-      {
-        Node *newRoot = new Node();
+      if (parent == nullptr) {
+        Node* newRoot = new Node();
         newRoot->isLeaf = false;
         newRoot->keys.push_back(midKey);
         newRoot->children.push_back(leaf);
         newRoot->children.push_back(newLeaf);
         root = newRoot;
-      }
-      else
-      {
+      } else {
         insertInternal(parent, newLeaf, midKey);
       }
     }
   }
 
-  Node *search(const T &key) const
-  {
+  Node* search(const T& key) const {
     auto path = findLeaf(key);
     if (path.empty())
       return nullptr;
@@ -460,23 +383,18 @@ public:
     return std::binary_search(leaf->keys.begin(), leaf->keys.end(), key) ? leaf : nullptr;
   }
 
-  // Busca por substring em títulos (especializada para pair<string, int>)
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value,
                           std::vector<std::pair<std::string, int>>>::type
-  searchBySubstring(const std::string &substring) const
-  {
+  searchBySubstring(const std::string& substring) const {
     std::vector<std::pair<std::string, int>> results;
 
-    // Começar do primeiro nó folha
     auto node = root;
     if (!node)
       return results;
 
-    // Ir para a primeira folha
     int depth = 0;
-    while (depth < 20)
-    { // Limitar profundidade para evitar loop infinito
+    while (depth < 20) {
       node = ensureLoaded(node);
       if (!node)
         return results;
@@ -494,50 +412,35 @@ public:
     if (depth >= 20 || !node || !node->isLeaf)
       return results;
 
-    // Percorrer algumas folhas (limitado para performance)
-    int maxLeaves = 100; // Limitar a 100 folhas para não carregar toda a árvore
+    int maxLeaves = 100;
     int leavesChecked = 0;
 
-    while (node != nullptr && leavesChecked < maxLeaves)
-    {
+    while (node != nullptr && leavesChecked < maxLeaves) {
       node = ensureLoaded(node);
       if (!node)
         break;
 
-      // Procurar na folha atual
-      for (const auto &pair : node->keys)
-      {
+      for (const auto& pair : node->keys)
         if (substring.empty() || pair.first.find(substring) != std::string::npos)
-        {
           results.push_back(pair);
-        }
-      }
 
       leavesChecked++;
 
-      // Ir para a próxima folha
       if (node->next)
-      {
         node = ensureLoaded(node->next);
-      }
       else
-      {
         break;
-      }
     }
 
     return results;
   }
 
-  // Busca mais específica: procurar apenas em um range aproximado
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value,
                           std::vector<std::pair<std::string, int>>>::type
-  searchByPrefix(const std::string &prefix) const
-  {
+  searchByPrefix(const std::string& prefix) const {
     std::vector<std::pair<std::string, int>> results;
 
-    // Fazer busca usando o primeiro caractere como chave
     std::pair<std::string, int> searchKey = {prefix, 0};
     auto path = findLeaf(searchKey);
 
@@ -549,106 +452,79 @@ public:
     if (!leaf)
       return results;
 
-    // Procurar na folha encontrada
-    for (const auto &pair : leaf->keys)
-    {
+    for (const auto& pair : leaf->keys)
       if (pair.first.find(prefix) != std::string::npos)
-      {
         results.push_back(pair);
-      }
-    }
 
-    // Verificar também a próxima folha
-    if (leaf->next)
-    {
+    if (leaf->next) {
       auto nextLeaf = ensureLoaded(leaf->next);
-      if (nextLeaf)
-      {
-        for (const auto &pair : nextLeaf->keys)
-        {
+      if (nextLeaf) {
+        for (const auto& pair : nextLeaf->keys)
           if (pair.first.find(prefix) != std::string::npos)
-          {
             results.push_back(pair);
-          }
-        }
       }
     }
 
     return results;
   }
 
-  void traverse() const
-  {
+  void traverse() const {
     auto node = root;
     while (!node->isLeaf)
       node = node->children[0];
 
-    while (node != nullptr)
-    {
-      for (const auto &key : node->keys)
+    while (node != nullptr) {
+      for (const auto& key : node->keys)
         print_key(key);
       node = node->next;
     }
     std::cout << std::endl;
   }
 
-  // Save the B+ tree to a binary file
-  int saveToFile(const std::string &filename)
-  {
+  int saveToFile(const std::string& filename) {
     std::ofstream file(filename, std::ios::binary);
-    if (!file)
-    {
+    if (!file) {
       std::cerr << "Erro: não foi possível criar o arquivo " << filename << std::endl;
       return -1;
     }
 
-    // Save tree metadata
-    file.write(reinterpret_cast<const char *>(&m), sizeof(int));
+    file.write(reinterpret_cast<const char*>(&m), sizeof(int));
 
-    // Create node ID mapping
-    std::unordered_map<Node *, int> nodeIds;
+    std::unordered_map<Node*, int> nodeIds;
     int nextId = 0;
 
-    // Count total nodes first
-    std::queue<Node *> nodeQueue;
-    std::unordered_set<Node *> visited;
+    std::queue<Node*> nodeQueue;
+    std::unordered_set<Node*> visited;
     nodeQueue.push(root);
     visited.insert(root);
 
-    while (!nodeQueue.empty())
-    {
-      Node *current = nodeQueue.front();
+    while (!nodeQueue.empty()) {
+      Node* current = nodeQueue.front();
       nodeQueue.pop();
 
-      if (!current->isLeaf)
-      {
-        for (auto child : current->children)
-        {
-          if (visited.find(child) == visited.end())
-          {
+      if (!current->isLeaf) {
+        for (auto child : current->children) {
+          if (visited.find(child) == visited.end()) {
             nodeQueue.push(child);
             visited.insert(child);
           }
         }
       }
 
-      if (current->isLeaf && current->next && visited.find(current->next) == visited.end())
-      {
+      if (current->isLeaf && current->next && visited.find(current->next) == visited.end()) {
         nodeQueue.push(current->next);
         visited.insert(current->next);
       }
     }
 
     int totalNodes = visited.size();
-    file.write(reinterpret_cast<const char *>(&totalNodes), sizeof(int));
+    file.write(reinterpret_cast<const char*>(&totalNodes), sizeof(int));
 
-    // Save all nodes
-    for (Node *node : visited)
+    for (Node* node : visited)
       saveNodeToFile(file, node, nodeIds, nextId);
 
-    // Save root ID
     int rootId = nodeIds[root];
-    file.write(reinterpret_cast<const char *>(&rootId), sizeof(int));
+    file.write(reinterpret_cast<const char*>(&rootId), sizeof(int));
 
     int numBlocks = (file.tellp() + BLOCK_SIZE - 1) / BLOCK_SIZE;
     file.close();
@@ -656,68 +532,54 @@ public:
     return numBlocks;
   }
 
-  // Load the B+ tree from a binary file with lazy loading
-  bool loadFromFile(const std::string &filename)
-  {
+  bool loadFromFile(const std::string& filename) {
     fileName = filename;
     isLazyMode = true;
     nodeCache.clear();
     nodePositions.clear();
 
     std::ifstream file(filename, std::ios::binary);
-    if (!file)
-    {
+    if (!file) {
       std::cerr << "Erro: não foi possível abrir o arquivo " << filename << std::endl;
       return false;
     }
 
-    // Load tree metadata
-    file.read(reinterpret_cast<char *>(&m), sizeof(int));
+    file.read(reinterpret_cast<char*>(&m), sizeof(int));
 
-    // Load total nodes
     int totalNodes;
-    file.read(reinterpret_cast<char *>(&totalNodes), sizeof(int));
+    file.read(reinterpret_cast<char*>(&totalNodes), sizeof(int));
 
-    // Primeira passada: mapear posições dos nós no arquivo
-    for (int i = 0; i < totalNodes; i++)
-    {
+    for (int i = 0; i < totalNodes; i++) {
       std::streampos currentPos = file.tellg();
 
       int nodeId;
-      file.read(reinterpret_cast<char *>(&nodeId), sizeof(int));
+      file.read(reinterpret_cast<char*>(&nodeId), sizeof(int));
 
-      // Guardar posição deste nó
       nodePositions[nodeId] = currentPos;
 
       bool isLeaf;
-      file.read(reinterpret_cast<char *>(&isLeaf), sizeof(bool));
+      file.read(reinterpret_cast<char*>(&isLeaf), sizeof(bool));
 
-      // Pular chaves
       size_t keyCount;
-      file.read(reinterpret_cast<char *>(&keyCount), sizeof(size_t));
+      file.read(reinterpret_cast<char*>(&keyCount), sizeof(size_t));
       for (size_t j = 0; j < keyCount; j++)
         skipKey(file);
 
-      // Pular children para nós internos
-      if (!isLeaf)
-      {
+      if (!isLeaf) {
         size_t childCount;
-        file.read(reinterpret_cast<char *>(&childCount), sizeof(size_t));
+        file.read(reinterpret_cast<char*>(&childCount), sizeof(size_t));
         file.seekg(childCount * sizeof(int), std::ios::cur);
       }
 
-      // Pular next pointer para folhas
       if (isLeaf)
         file.seekg(sizeof(int), std::ios::cur);
     }
 
-    // Carregar apenas o nó raiz inicialmente
     int rootId;
-    file.read(reinterpret_cast<char *>(&rootId), sizeof(int));
+    file.read(reinterpret_cast<char*>(&rootId), sizeof(int));
 
     root = loadNodeById(rootId);
-    if (!root)
-    {
+    if (!root) {
       std::cerr << "Erro: não foi possível carregar nó raiz" << std::endl;
       return false;
     }
@@ -726,49 +588,40 @@ public:
     return true;
   }
 
-  // Método auxiliar para pular uma chave no arquivo
   template <typename U = T>
   typename std::enable_if<std::is_same<U, int>::value>::type
-  skipKey(std::ifstream &file) const
-  {
+  skipKey(std::ifstream& file) const {
     file.seekg(sizeof(int), std::ios::cur);
   }
 
   template <typename U = T>
   typename std::enable_if<std::is_same<U, std::pair<std::string, int>>::value>::type
-  skipKey(std::ifstream &file) const
-  {
+  skipKey(std::ifstream& file) const {
     size_t strLen;
-    file.read(reinterpret_cast<char *>(&strLen), sizeof(size_t));
+    file.read(reinterpret_cast<char*>(&strLen), sizeof(size_t));
     file.seekg(strLen + sizeof(int), std::ios::cur);
   }
 
-  // Estatísticas de carregamento
-  int getLoadedNodesCount() const
-  {
+  int getLoadedNodesCount() const {
     return nodeCache.size();
   }
 
-  int getTotalNodesCount() const
-  {
+  int getTotalNodesCount() const {
     return nodePositions.size();
   }
 
-  // Limpar cache (liberar memória)
-  void clearCache()
-  {
+  void clearCache() {
     if (!isLazyMode)
       return;
 
-    for (auto &pair : nodeCache)
+    for (auto& pair : nodeCache)
       if (pair.second && pair.second != root)
         delete pair.second;
     nodeCache.clear();
 
-    // Manter apenas a raiz no cache
     if (root)
       nodeCache[root->nodeId] = root;
   }
 };
 
-#endif // BPLUSTREE_H
+#endif

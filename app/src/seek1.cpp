@@ -11,66 +11,56 @@ int main(int argc, char* argv[]) {
   int id;
   try {
     id = std::stoi(argv[1]);
+    if (id < 1)
+      throw std::exception();
   } catch (const std::exception& e) {
-    std::cerr << "ID inválido: " << argv[1] << std::endl;
+    std::cerr << "Erro: id inválido: " << argv[1] << std::endl;
     return 1;
   }
 
-  std::string data_dir = std::getenv("DATA_DIR") ? std::getenv("DATA_DIR") : "data/db";
-  std::string primary_index_file = data_dir + "/idx1.bin";
+  std::string hash_path = "data/db/hash.bin";
+  std::string idx1_path = "data/db/idx1.bin";
 
-  std::cout << "=== SEEK1 - Search via Primary Index (B+Tree Lazy Loading) ===" << std::endl;
-  std::cout << "Looking for ID: " << id << std::endl;
-  std::cout << "Primary index: " << primary_index_file << std::endl;
+  std::cout << "=== seek1 " << id << " ===" << std::endl;
+  std::cout << "Buscando em " << idx1_path << std::endl;
 
-  // Carregar árvore B+ com lazy loading
   BPlusTree<int> bptree(170);
 
-  auto load_start = std::chrono::high_resolution_clock::now();
+  auto t0 = std::chrono::high_resolution_clock::now();
 
-  if (!bptree.loadFromFile(primary_index_file)) {
+  if (!bptree.loadFromFile(idx1_path)) {
     std::cerr << "Erro: não foi possível carregar o índice primário" << std::endl;
     return 1;
   }
 
-  auto load_end = std::chrono::high_resolution_clock::now();
-  auto load_duration = std::chrono::duration_cast<std::chrono::microseconds>(load_end - load_start);
-
-  std::cout << "Índice carregado (lazy loading) em " << load_duration.count() << " µs" << std::endl;
-  std::cout << "Nós carregados inicialmente: " << bptree.getLoadedNodesCount()
-            << " de " << bptree.getTotalNodesCount() << std::endl;
-
-  // Buscar o ID
-  auto search_start = std::chrono::high_resolution_clock::now();
-
   auto result = bptree.search(id);
 
-  auto search_end = std::chrono::high_resolution_clock::now();
-  auto search_duration = std::chrono::duration_cast<std::chrono::microseconds>(search_end - search_start);
+  auto t1 = std::chrono::high_resolution_clock::now();
+  auto t = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
 
-  std::cout << std::endl
-            << "=== SEARCH RESULTS ===" << std::endl;
+  std::cout << " [" << t.count() << " ms] " << bptree.getLoadedNodesCount() << " blocos lidos" << std::endl;
 
   if (result != nullptr) {
-    std::cout << "RECORD FOUND IN PRIMARY INDEX:" << std::endl;
-    std::cout << "--------------------------------" << std::endl;
-    std::cout << "ID: " << id << std::endl;
-    std::cout << "Node contains " << result->keys.size() << " keys" << std::endl;
+    std::ifstream in(hash_path, std::ios::binary);
+
+    if (!in) {
+      std::cerr << "Erro: não foi possível abrir " << hash_path << std::endl;
+      return 1;
+    }
+
+    long offset = (id % MAP_SIZE) * sizeof(Record) * 2;
+    in.seekg(offset, std::ios::beg);
+
+    Record rec;
+    for (int tries = 0; rec.id != id && tries < 2; tries++)
+      in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
+
+    in.close();
+
+    rec.print();
+    return 0;
   } else {
-    std::cout << "RECORD NOT FOUND IN PRIMARY INDEX" << std::endl;
+    std::cout << "registro não encontrado" << std::endl;
+    return 1;
   }
-
-  std::cout << std::endl
-            << "=== SEARCH STATISTICS ===" << std::endl;
-  std::cout << "Total nodes in tree: " << bptree.getTotalNodesCount() << std::endl;
-  std::cout << "Nodes loaded during search: " << bptree.getLoadedNodesCount() << std::endl;
-  std::cout << "Index load time: " << load_duration.count() << " µs" << std::endl;
-  std::cout << "Search time: " << search_duration.count() << " µs" << std::endl;
-
-  if (bptree.getTotalNodesCount() > 0) {
-    double access_percent = (double) bptree.getLoadedNodesCount() / bptree.getTotalNodesCount() * 100.0;
-    std::cout << "Nodes accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
-  }
-
-  return result != nullptr ? 0 : 1;
 }

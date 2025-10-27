@@ -1,107 +1,64 @@
 #include "b+tree.h"
 #include "record.h"
-#include <chrono>
-#include <cstdlib>
-#include <iomanip>
-#include <iostream>
+#include <bits/stdc++.h>
 
-int main(int argc, char *argv[])
-{
-  if (argc != 2)
-  {
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
     std::cerr << "Uso: " << argv[0] << " \"<Título>\"" << std::endl;
-    std::cerr << "Exemplo: " << argv[0] << " \"Design and implementation\"" << std::endl;
     return 1;
   }
 
   std::string titulo = argv[1];
-  std::string data_dir = std::getenv("DATA_DIR") ? std::getenv("DATA_DIR") : "data/db";
-  std::string secondary_index_file = data_dir + "/idx2.bin";
+  std::string hash_path = "data/db/hash.bin";
+  std::string idx2_path = "data/db/idx2.bin";
 
-  std::cout << "=== SEEK2 - Search via Secondary Index (B+Tree Lazy Loading) ===" << std::endl;
-  std::cout << "Looking for title: \"" << titulo << "\"" << std::endl;
-  std::cout << "Secondary index: " << secondary_index_file << std::endl;
+  std::cout << "=== seek2 " << titulo << " ===" << std::endl;
+  std::cout << "Buscando em " << idx2_path << std::endl;
 
-  // Carregar árvore B+ com lazy loading
   BPlusTree<std::pair<std::string, int>> bptree(6);
 
-  auto load_start = std::chrono::high_resolution_clock::now();
+  auto t0 = std::chrono::high_resolution_clock::now();
 
-  if (!bptree.loadFromFile(secondary_index_file))
-  {
+  if (!bptree.loadFromFile(idx2_path)) {
     std::cerr << "Erro: não foi possível carregar o índice secundário" << std::endl;
     return 1;
   }
 
-  auto load_end = std::chrono::high_resolution_clock::now();
-  auto load_duration = std::chrono::duration_cast<std::chrono::microseconds>(load_end - load_start);
-
-  std::cout << "Índice carregado (lazy loading) em " << load_duration.count() << " µs" << std::endl;
-  std::cout << "Nós carregados inicialmente: " << bptree.getLoadedNodesCount()
-            << " de " << bptree.getTotalNodesCount() << std::endl;
-
-  // Buscar títulos que contêm o termo fornecido
-  auto search_start = std::chrono::high_resolution_clock::now();
-
-  // Usar busca por prefixo (mais eficiente)
   auto results = bptree.searchByPrefix(titulo);
 
-  // Se não encontrar com prefixo, tentar substring limitada
   if (results.empty())
-  {
     results = bptree.searchBySubstring(titulo);
-  }
 
-  auto search_end = std::chrono::high_resolution_clock::now();
-  auto search_duration = std::chrono::duration_cast<std::chrono::microseconds>(search_end - search_start);
+  auto t1 = std::chrono::high_resolution_clock::now();
+  auto t = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
 
-  std::cout << std::endl
-            << "=== SEARCH RESULTS ===" << std::endl;
+  std::cout << " [" << t.count() << " ms] " << bptree.getLoadedNodesCount() << " blocos lidos" << std::endl;
 
   bool found = !results.empty();
 
-  if (found)
-  {
-    std::cout << "RECORDS FOUND IN SECONDARY INDEX:" << std::endl;
-    std::cout << "----------------------------------" << std::endl;
-    std::cout << "Found " << results.size() << " matching records:" << std::endl;
+  if (found) {
+    std::ifstream in(hash_path, std::ios::binary);
 
-    // Mostrar até 5 resultados
-    for (size_t i = 0; i < std::min(results.size(), size_t(5)); i++)
-    {
-      std::cout << "[" << (i + 1) << "] Title: \"" << results[i].first << "\"" << std::endl;
-      std::cout << "    Article ID: " << results[i].second << std::endl;
+    if (!in) {
+      std::cerr << "Erro: não foi possível abrir " << hash_path << std::endl;
+      return 1;
     }
 
-    if (results.size() > 5)
-    {
-      std::cout << "... and " << (results.size() - 5) << " more results" << std::endl;
+    for (size_t i = 0; i < results.size(); i++) {
+      int id = results[i].second;
+      long offset = (id % MAP_SIZE) * sizeof(Record) * 2;
+      in.seekg(offset, std::ios::beg);
+
+      Record rec;
+      for (int tries = 0; rec.id != id && tries < 2; tries++)
+        in.read(reinterpret_cast<char*>(&rec), sizeof(Record));
+
+      rec.print();
     }
+    in.close();
+    return 0;
+  } else {
+    std::cout << "nenhum registro encontrado" << std::endl;
+    return 1;
   }
-  else
-  {
-    std::cout << "RECORD NOT FOUND IN SECONDARY INDEX" << std::endl;
-    std::cout << "No titles containing \"" << titulo << "\" were found" << std::endl;
-  }
-
-  std::cout << std::endl
-            << "=== SEARCH STATISTICS ===" << std::endl;
-  std::cout << "Total nodes in tree: " << bptree.getTotalNodesCount() << std::endl;
-  std::cout << "Nodes loaded during search: " << bptree.getLoadedNodesCount() << std::endl;
-  std::cout << "Index load time: " << load_duration.count() << " µs" << std::endl;
-  std::cout << "Search time: " << search_duration.count() << " µs" << std::endl;
-
-  if (bptree.getTotalNodesCount() > 0)
-  {
-    double access_percent = (double)bptree.getLoadedNodesCount() / bptree.getTotalNodesCount() * 100.0;
-    std::cout << "Nodes accessed: " << std::fixed << std::setprecision(2) << access_percent << "%" << std::endl;
-  }
-
-  std::cout << std::endl
-            << "=== TITLE SEARCH ANALYSIS ===" << std::endl;
-  std::cout << "Search strategy: Lazy loading B+Tree with substring matching" << std::endl;
-  std::cout << "Nodes loaded: " << bptree.getLoadedNodesCount() << std::endl;
-  std::cout << "Search type: Title substring -> ID mapping" << std::endl;
-
-  return found ? 0 : 1;
 }

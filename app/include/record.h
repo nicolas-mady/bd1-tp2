@@ -60,4 +60,4 @@ struct Record {
   }
 };
 
-#endif // RECORD_H
+#endif

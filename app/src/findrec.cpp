@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
-    std::cerr << "uso: " << argv[0] << " <id>" << std::endl;
+    std::cerr << "Uso: " << argv[0] << " <id>" << std::endl;
     return 1;
   }
 
@@ -13,21 +13,21 @@ int main(int argc, char* argv[]) {
     if (id < 1)
       throw std::exception();
   } catch (const std::exception& e) {
-    std::cerr << "erro: id inválido: " << argv[1] << std::endl;
+    std::cerr << "Erro: id inválido: " << argv[1] << std::endl;
     return 1;
   }
 
   std::string hash_path = "data/db/hash.bin";
 
   std::cout << "=== findrec " << id << " ===" << std::endl;
-  std::cout << "buscando em " << hash_path << std::endl;
+  std::cout << "Buscando em " << hash_path << std::endl;
 
   auto t0 = std::chrono::high_resolution_clock::now();
 
   std::ifstream in(hash_path, std::ios::binary);
 
   if (!in) {
-    std::cerr << "erro: não foi possível abrir " << hash_path << std::endl;
+    std::cerr << "Erro: não foi possível abrir " << hash_path << std::endl;
     return 1;
   }
 
